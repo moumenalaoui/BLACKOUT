@@ -52,7 +52,10 @@ async fn main() -> anyhow::Result<()> {
         .map(|v| v.trim().to_string())
         .filter(|v| !v.is_empty())
         .unwrap_or_else(|| "../frontend/dist".to_string());
-    if std::path::Path::new(&static_dir).join("index.html").exists() {
+    if std::path::Path::new(&static_dir)
+        .join("index.html")
+        .exists()
+    {
         println!("Serving SPA from {static_dir}");
     } else {
         eprintln!(
@@ -76,6 +79,14 @@ async fn main() -> anyhow::Result<()> {
     let satellite_fetch_catalog = satellite_catalog.clone();
     tokio::spawn(async move {
         fetchers::satellites::run_catalog_refresh_loop(satellite_fetch_catalog).await;
+    });
+
+    // Same AppState/SQLite state as the fetch loop above — just a much
+    // shorter cadence, since HTTP/3 protocol-share and BGP prefix-visibility
+    // are meant to be leading indicators, not caught up to 6 hours late.
+    let precision_state = state.clone();
+    tokio::spawn(async move {
+        db::run_precision_fetcher_loop(precision_state).await;
     });
 
     // Public and read-only. Every route below is a GET; `POST /api/evaluate`
@@ -113,10 +124,18 @@ async fn main() -> anyhow::Result<()> {
             "/api/satellites/:norad_id/orbit",
             get(api::satellites::satellite_orbit),
         )
-        // Scoped to the routes above (not the SPA fallback below) via
+        // Scoped to the two routes above (not the SPA fallback below) via
         // `route_layer` — the satellites handlers take this instead of
         // `State<AppState>`, since they have nothing to do with SQLite.
         .route_layer(Extension(satellite_catalog))
+        .route(
+            "/api/http-protocol-share",
+            get(api::http_protocol_share::list_http_protocol_share),
+        )
+        .route(
+            "/api/bgp-visibility",
+            get(api::bgp_visibility::list_bgp_visibility),
+        )
         // The built SPA. Anything not matching a route above falls through to
         // ServeDir, and anything ServeDir can't find falls through to
         // index.html so client-side routes and deep links resolve.
@@ -148,8 +167,14 @@ fn spa_service(dir: &str) -> ServeDir<ServeFile> {
 /// for these countries". Say it once, loudly, at boot.
 fn warn_missing_optional_tokens() {
     let missing: Vec<(&str, &str)> = [
-        ("PULSE_API_TOKEN", "Internet Resilience Index (all countries)"),
-        ("CLOUDFLARE_API_TOKEN", "Cloudflare Radar outage annotations"),
+        (
+            "PULSE_API_TOKEN",
+            "Internet Resilience Index (all countries)",
+        ),
+        (
+            "CLOUDFLARE_API_TOKEN",
+            "Cloudflare Radar outage annotations + HTTP/3 protocol-share signal",
+        ),
     ]
     .into_iter()
     .filter(|(key, _)| {
@@ -167,5 +192,7 @@ fn warn_missing_optional_tokens() {
     for (key, effect) in missing {
         eprintln!("WARNING:   {key} unset -> no data for: {effect}");
     }
-    eprintln!("WARNING: those sources will render empty, not error. Set them in .env or the host environment.");
+    eprintln!(
+        "WARNING: those sources will render empty, not error. Set them in .env or the host environment."
+    );
 }

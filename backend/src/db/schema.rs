@@ -276,6 +276,56 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             last_updated  TEXT NOT NULL
         );
 
+        -- Daily HTTP/1.x vs HTTP/2 vs HTTP/3 (QUIC) traffic-share-by-country,
+        -- from Cloudflare Radar. A leading indicator of protocol-level
+        -- filtering distinct from a full outage: a government can block QUIC
+        -- (and the circumvention tools that tunnel over it) while the network
+        -- itself keeps running — HTTP/3 share collapsing is evidence of that,
+        -- before (or without) any connectivity blackout at all. Percentages
+        -- are nullable since Cloudflare omits a version entirely at ~0% share
+        -- rather than sending an explicit zero.
+        CREATE TABLE IF NOT EXISTS http_protocol_share (
+            id            TEXT PRIMARY KEY,
+            country_code  TEXT NOT NULL,
+            date          TEXT NOT NULL,
+            http1_pct     REAL,
+            http2_pct     REAL,
+            http3_pct     REAL,
+            source        TEXT NOT NULL,
+            last_updated  TEXT NOT NULL
+        );
+
+        -- Daily BGP prefix/ASN visibility-by-country, from RIPEstat: how much
+        -- of a country's *registered* address space is *currently routed*
+        -- (visible in the global routing table) versus merely allocated on
+        -- paper. A government withdrawing route announcements — a full
+        -- connectivity blackout at the routing layer, distinct from
+        -- application-level blocking — shows up here as routed counts
+        -- collapsing while registered counts stay flat. Deliberately stores
+        -- both raw counts rather than a precomputed ratio: the ratio is a
+        -- display-time computation (see BgpVisibilityChart.jsx), and this
+        -- table stays independent of http_protocol_share on purpose — each
+        -- signal is classified on its own, never merged into one derived
+        -- severity score.
+        -- All six counts are REAL, not INTEGER, even though they're
+        -- conceptually counts: RIPEstat averages across multiple RIS
+        -- route-collector snapshots within its resolution window, so a busy
+        -- country's count is frequently fractional (confirmed live: the US
+        -- returned a v6 routed-prefix count of 49559.5 for a single day).
+        CREATE TABLE IF NOT EXISTS bgp_prefix_visibility (
+            id                     TEXT PRIMARY KEY,
+            country_code           TEXT NOT NULL,
+            date                   TEXT NOT NULL,
+            registered_asns        REAL,
+            routed_asns            REAL,
+            registered_v4_prefixes REAL,
+            routed_v4_prefixes     REAL,
+            registered_v6_prefixes REAL,
+            routed_v6_prefixes     REAL,
+            source                 TEXT NOT NULL,
+            last_updated           TEXT NOT NULL
+        );
+
         -- Per-content-category censorship for a country, from OONI's
         -- aggregation API grouped by Citizen Lab category_code (NEWS, HUMR,
         -- LGBT, POLR, ...). One row per (country, category): the share of
@@ -327,6 +377,12 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             ON outage_events(country_code, start_ts DESC);
         CREATE INDEX IF NOT EXISTS idx_outage_events_end
             ON outage_events(end_ts DESC);
+
+        CREATE INDEX IF NOT EXISTS idx_http_protocol_share_country_date
+            ON http_protocol_share(country_code, date);
+
+        CREATE INDEX IF NOT EXISTS idx_bgp_prefix_visibility_country_date
+            ON bgp_prefix_visibility(country_code, date);
 
         -- blocking_timeline deliberately gets nothing: its PRIMARY KEY
         -- (country_code, technology, measurement_date) autoindex already
