@@ -4,6 +4,7 @@ import CountrySidebar from './components/CountrySidebar'
 import OutageFeed from './components/OutageFeed'
 import GlobalRanking from './components/GlobalRanking'
 import IndexLegend from './components/IndexLegend'
+import CableLegend from './components/CableLegend'
 import SatelliteLegend from './components/SatelliteLegend'
 import SatelliteCard from './components/SatelliteCard'
 import CommandBar from './components/CommandBar'
@@ -14,10 +15,12 @@ import {
   getCensorshipIndex,
   getCountries,
   getCountry,
+  getCables,
   getGeo,
   getOutages,
   getSatellites,
   getSatelliteOrbit,
+  getStarlinkStatus,
 } from './lib/api'
 import { BASE, BORDER, MONO, MUTED, SIDEBAR } from './theme'
 import './App.css'
@@ -49,6 +52,15 @@ export default function App() {
   const [layer] = useState('ALL')
   const [geo, setGeo] = useState([])
   const [outages, setOutages] = useState([])
+  // Hand-curated Starlink legal/regulatory status per country (not a live
+  // feed) — fetched once, indexed by country_code below.
+  const [starlinkStatus, setStarlinkStatus] = useState([])
+  // Submarine cable routes + landing points (static, fetched once regardless
+  // of toggle state — see getCables()'s doc comment) and its own binary
+  // show/hide, default off since it's decorative infrastructure context, not
+  // an always-relevant signal.
+  const [cables, setCables] = useState({ routes: [], landing_points: [] })
+  const [showCables, setShowCables] = useState(false)
   // Composite censorship index (code -> 0–100) driving the globe choropleth,
   // plus its on/off toggle (default on).
   const [indexByCode, setIndexByCode] = useState({})
@@ -167,6 +179,46 @@ export default function App() {
     () => Object.fromEntries(geo.map((g) => [g.country_code, g])),
     [geo],
   )
+
+  // Starlink status: fetched once, same shape as getGeo() above. Non-fatal —
+  // on failure the sidebar simply shows no badge for any country.
+  useEffect(() => {
+    let cancelled = false
+
+    getStarlinkStatus()
+      .then((rows) => {
+        if (!cancelled) setStarlinkStatus(rows)
+      })
+      .catch(() => {
+        if (!cancelled) setStarlinkStatus([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const starlinkByCode = useMemo(
+    () => Object.fromEntries(starlinkStatus.map((s) => [s.country_code, s])),
+    [starlinkStatus],
+  )
+
+  // Submarine cables: fetched once, same non-fatal shape as getGeo() above.
+  useEffect(() => {
+    let cancelled = false
+
+    getCables()
+      .then((data) => {
+        if (!cancelled) setCables(data)
+      })
+      .catch(() => {
+        if (!cancelled) setCables({ routes: [], landing_points: [] })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Composite censorship index for the choropleth. Non-fatal: on failure the
   // globe simply renders without fills.
@@ -406,6 +458,8 @@ export default function App() {
             onSatelliteSelect={setSelectedSatelliteId}
             selectedSatelliteId={selectedSatelliteId}
             satelliteOrbit={satelliteOrbit}
+            cables={cables}
+            showCables={showCables}
           />
 
           {/* Vignette: darkens the globe-area corners to focus the eye and add
@@ -426,6 +480,13 @@ export default function App() {
           <GlobalRanking />
 
           <IndexLegend show={showIndex} onToggle={() => setShowIndex((v) => !v)} />
+
+          <CableLegend
+            show={showCables}
+            onToggle={() => setShowCables((v) => !v)}
+            routeCount={cables.routes.length}
+            landingCount={cables.landing_points.length}
+          />
 
           <SatelliteLegend
             selection={spaceTrackingSelection}
@@ -470,6 +531,7 @@ export default function App() {
               <CountrySidebar
                 country={sidebarCountry}
                 layer={layer}
+                starlinkStatus={starlinkByCode[sidebarCountry?.country_code]}
                 onClose={() => {
                   setSelectedCode('')
                   setSelectedCountry(null)

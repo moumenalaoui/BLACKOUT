@@ -48,6 +48,10 @@ const SPACE_BG = '#040409'
 // densest censorship geography — instead of the mid-Atlantic.
 const HOME_VIEW = { lon: 20.0, lat: 15.0, height: 20_000_000 }
 
+// Just above the 2000m border outlines so cable routes/landing points draw on
+// top of them rather than z-fighting at the surface.
+const CABLE_HEIGHT = 2500
+
 // The acute layer is crimson, full stop: confirmed blocks and live outages are
 // both "trouble". Reusing the confirmed-blocked status colour keeps a glow on
 // the globe meaning the same thing as the crimson status in the sidebar.
@@ -183,6 +187,8 @@ export default function Globe({
   onSatelliteSelect,
   selectedSatelliteId = null,
   satelliteOrbit = null,
+  cables = null,
+  showCables = false,
 }) {
   const containerRef = useRef(null)
   const viewerRef = useRef(null)
@@ -204,6 +210,14 @@ export default function Globe({
   // orbit path — both created once in init, alongside outlineCollection.
   const satPointsRef = useRef(null)
   const satOrbitRef = useRef(null)
+  // Submarine cable routes + landing points: static reference data (fetched
+  // once in App.jsx, never changes for the life of the session), so — unlike
+  // the satellite collections above — these are populated exactly once, the
+  // first time the `cables` prop arrives non-empty, and never rebuilt.
+  // `cablesBuiltRef` guards that one-time population across re-renders.
+  const cableRouteRef = useRef(null)
+  const cableLandingRef = useRef(null)
+  const cablesBuiltRef = useRef(false)
   const [ready, setReady] = useState(false)
 
   // Keep the latest callbacks in refs so the init effect (which only runs
@@ -335,6 +349,20 @@ export default function Globe({
       // outlines above, but rebuilt per selection rather than built once.
       satOrbitRef.current = new Cesium.PolylineCollection()
       viewer.scene.primitives.add(satOrbitRef.current)
+
+      // Submarine cables: a PolylineCollection for routes and a
+      // PointPrimitiveCollection for landing points, both created empty here
+      // and populated once by their own effect below when the `cables` prop
+      // first arrives. `.show` starts false and is driven entirely by the
+      // `showCables` toggle effect, so the layer is invisible until switched
+      // on even though the collections exist from init.
+      cableRouteRef.current = new Cesium.PolylineCollection()
+      cableRouteRef.current.show = false
+      viewer.scene.primitives.add(cableRouteRef.current)
+
+      cableLandingRef.current = new Cesium.PointPrimitiveCollection()
+      cableLandingRef.current.show = false
+      viewer.scene.primitives.add(cableLandingRef.current)
 
       // Markers and blooms are built by their own effects, from props — see
       // below. Init owns only what the scene needs once: the viewer, the borders
@@ -675,6 +703,58 @@ export default function Globe({
       })
     }
   }, [ready, satelliteOrbit])
+
+  // Submarine cable geometry: built exactly once, the first time `cables`
+  // arrives with data, guarded by `cablesBuiltRef` since this is static
+  // reference data with no reason to ever be rebuilt for the session. Each
+  // route's `segments` array is drawn as one polyline per segment (never
+  // flattened) — TeleGeography's own MultiLineString splitting already
+  // avoids spurious antimeridian-crossing lines for most routes (verified:
+  // 306/728 routes carry more than one segment), so no extra client-side
+  // splitting is done here.
+  useEffect(() => {
+    if (!ready) return
+    const viewer = viewerRef.current
+    if (!viewer || viewer.isDestroyed()) return
+    if (cablesBuiltRef.current) return
+    if (!cables || !cables.routes?.length) return
+    const routeCollection = cableRouteRef.current
+    const landingCollection = cableLandingRef.current
+    if (!routeCollection || !landingCollection) return
+
+    for (const route of cables.routes) {
+      const color = Cesium.Color.fromCssColorString(route.color || '#5a6472').withAlpha(0.55)
+      for (const segment of route.segments) {
+        if (segment.length < 2) continue
+        const positions = segment.map(([lon, lat]) =>
+          Cesium.Cartesian3.fromDegrees(lon, lat, CABLE_HEIGHT),
+        )
+        routeCollection.add({
+          positions,
+          width: 1,
+          material: Cesium.Material.fromType('Color', { color }),
+        })
+      }
+    }
+
+    for (const point of cables.landing_points) {
+      if (point.lon == null || point.lat == null) continue
+      landingCollection.add({
+        position: Cesium.Cartesian3.fromDegrees(point.lon, point.lat, CABLE_HEIGHT),
+        pixelSize: 2,
+        color: Cesium.Color.fromCssColorString('#c9cfd6').withAlpha(0.75),
+      })
+    }
+
+    cablesBuiltRef.current = true
+  }, [ready, cables])
+
+  // Cable layer visibility: a plain `.show` flip on both collections, not
+  // add/remove — the geometry above is only ever built once.
+  useEffect(() => {
+    if (cableRouteRef.current) cableRouteRef.current.show = showCables
+    if (cableLandingRef.current) cableLandingRef.current.show = showCables
+  }, [showCables])
 
   // Reactive camera framing: the globe follows the app-wide selection, whatever
   // set it — a marker click here or the country dropdown in the header. A
