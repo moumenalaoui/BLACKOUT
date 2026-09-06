@@ -12,8 +12,15 @@ export async function getBlocking() {
   return r.json()
 }
 
+// 404 here means "no dossier row for this country" (only a handful of
+// countries have one — see backend/src/api/countries.rs's `get_country`),
+// not a failure: App.jsx's caller falls back to the lighter country_reference
+// stub for every other country, so a 404 is an expected, silent null rather
+// than a thrown error that would surface a misleading "failed to fetch" toast
+// on nearly every country click. A genuine failure (network/5xx) still throws.
 export async function getCountry(code) {
   const r = await fetch(`${BASE}/countries/${code}`)
+  if (r.status === 404) return null
   if (!r.ok) throw new Error(`Failed to fetch country ${code}`)
   return r.json()
 }
