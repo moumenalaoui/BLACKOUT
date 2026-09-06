@@ -1,4 +1,4 @@
-use axum::{Router, routing::get};
+use axum::{Extension, Router, routing::get};
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
 use tower_http::services::{ServeDir, ServeFile};
@@ -14,6 +14,7 @@ mod db;
 mod engine;
 mod fetchers;
 mod models;
+mod satellites;
 mod util;
 
 pub type AppState = Arc<Mutex<Connection>>;
@@ -69,6 +70,14 @@ async fn main() -> anyhow::Result<()> {
         db::run_fetcher_loop(fetch_state).await;
     });
 
+    // Independent of AppState/SQLite entirely, and on its own (much shorter)
+    // cadence than the fetchers above — see `satellites` module docs for why.
+    let satellite_catalog = satellites::new_catalog();
+    let satellite_fetch_catalog = satellite_catalog.clone();
+    tokio::spawn(async move {
+        fetchers::satellites::run_catalog_refresh_loop(satellite_fetch_catalog).await;
+    });
+
     // Public and read-only. Every route below is a GET; `POST /api/evaluate`
     // is deliberately NOT mounted — it was the one write path (it persists
     // evidence rows) and nothing in the UI calls it, so on a public URL it
@@ -99,6 +108,15 @@ async fn main() -> anyhow::Result<()> {
             "/api/country-scores",
             get(api::country_scores::list_country_scores),
         )
+        .route("/api/satellites", get(api::satellites::list_satellites))
+        .route(
+            "/api/satellites/:norad_id/orbit",
+            get(api::satellites::satellite_orbit),
+        )
+        // Scoped to the routes above (not the SPA fallback below) via
+        // `route_layer` — the satellites handlers take this instead of
+        // `State<AppState>`, since they have nothing to do with SQLite.
+        .route_layer(Extension(satellite_catalog))
         // The built SPA. Anything not matching a route above falls through to
         // ServeDir, and anything ServeDir can't find falls through to
         // index.html so client-side routes and deep links resolve.

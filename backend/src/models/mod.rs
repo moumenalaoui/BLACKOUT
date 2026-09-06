@@ -8,6 +8,7 @@ pub mod country_score;
 pub mod deployment;
 pub mod model_release;
 pub mod outage_event;
+pub mod satellite;
 pub mod signal;
 pub mod technology_block;
 pub mod tor_metric;
