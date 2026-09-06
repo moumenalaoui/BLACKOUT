@@ -505,14 +505,36 @@ export default function App() {
 
           <GlobalRanking />
 
-          <IndexLegend show={showIndex} onToggle={() => setShowIndex((v) => !v)} />
-
-          <CableLegend
-            show={showCables}
-            onToggle={() => setShowCables((v) => !v)}
-            routeCount={cables.routes.length}
-            landingCount={cables.landing_points.length}
-          />
+          {/* Centered as one group so the pair's combined width — not
+              either panel's individually — is what centers at the bottom.
+              Bounded to the region right of GlobalRanking (left:288 = its
+              own left:12 + 264px width + a 12px gap), not the full viewport
+              width — a plain 50% center ignored that GlobalRanking occupies
+              a fixed column on the left, so on narrower windows this group
+              centered enough to overlap the bottom of that list. Bounding +
+              centering within the remaining space fixes that at any width,
+              rather than a fixed pixel nudge that would only hold at one
+              specific window size. */}
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 12,
+              left: 288,
+              right: 12,
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 12,
+              zIndex: 5,
+            }}
+          >
+            <IndexLegend show={showIndex} onToggle={() => setShowIndex((v) => !v)} />
+            <CableLegend
+              show={showCables}
+              onToggle={() => setShowCables((v) => !v)}
+              routeCount={cables.routes.length}
+              landingCount={cables.landing_points.length}
+            />
+          </div>
 
           <SatelliteLegend
             selection={spaceTrackingSelection}
