@@ -227,7 +227,6 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
         </div>
 
         <StarlinkBadge entry={starlinkStatus} />
-        <IxpBadge entry={ixpStats} />
       </div>
 
       <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -237,6 +236,8 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
           <Http3ShareChart countryCode={country.country_code} />
 
           <BgpVisibilityChart countryCode={country.country_code} />
+
+          <IxpBadge entry={ixpStats} />
         </ThemeSection>
 
         {aiAccessGroups.length > 0 && (
