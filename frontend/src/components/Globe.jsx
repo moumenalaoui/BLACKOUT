@@ -6,6 +6,13 @@ import { AMBER, CRIMSON } from '../theme'
 import { BLOCKING_STATUS_COLOR } from '../lib/blockingRegistry'
 import { CATEGORY_COLOR_HEX } from './SatelliteLegend'
 
+const NUMERIC_CODE_ALIASES = new Map([[732, 'MA']])
+
+function borderGroupForNumeric(numeric) {
+  if (numeric === 504 || numeric === 732) return 'MA'
+  return numeric
+}
+
 // Read from the environment rather than inlined here: anything in this file
 // ships to the browser *and* to git. The Viewer below runs with
 // `imageryProvider: false` and no terrain provider, so no Ion asset is
@@ -313,7 +320,9 @@ export default function Globe({
       // runs separately so it can react to index data that arrives after init.
       geojsonRef.current = geojson
 
-      // Thin outline-only borders for every country.
+      // Thin outline-only borders for every country. Build these from the atlas
+      // topology rather than each country's own polygon rings so borders between
+      // aliased regions (Morocco / Western Sahara) can be suppressed.
       const outlineCollection = new Cesium.PolylineCollection()
       viewer.scene.primitives.add(outlineCollection)
 
@@ -330,13 +339,17 @@ export default function Globe({
         })
       }
 
-      geojson.features.forEach((feature) => {
-        if (feature.geometry.type === 'Polygon') {
-          addOutlineRing(feature.geometry.coordinates[0])
-        } else if (feature.geometry.type === 'MultiPolygon') {
-          feature.geometry.coordinates.forEach((poly) => addOutlineRing(poly[0]))
-        }
-      })
+      const borderMesh = topojson.mesh(
+        worldData.default,
+        worldData.default.objects.countries,
+        (a, b) => {
+          const aNumeric = parseInt(a?.id, 10)
+          const bNumeric = parseInt(b?.id, 10)
+          if (Number.isNaN(aNumeric) || Number.isNaN(bNumeric)) return true
+          return a === b || borderGroupForNumeric(aNumeric) !== borderGroupForNumeric(bNumeric)
+        },
+      )
+      borderMesh.coordinates.forEach(addOutlineRing)
 
       // Satellite markers: a single PointPrimitiveCollection (GPU-batched, one
       // draw call regardless of count) rather than one Entity per satellite —
@@ -560,7 +573,8 @@ export default function Globe({
     }
 
     for (const feature of geojson.features) {
-      const code = numericToCode.get(parseInt(feature.id, 10))
+      const numeric = parseInt(feature.id, 10)
+      const code = numericToCode.get(numeric) ?? NUMERIC_CODE_ALIASES.get(numeric)
       const g = feature.geometry
       if (g.type === 'Polygon') addRing(g.coordinates[0], code)
       else if (g.type === 'MultiPolygon') g.coordinates.forEach((poly) => addRing(poly[0], code))
@@ -625,7 +639,7 @@ export default function Globe({
     for (const feature of geojson.features) {
       const numeric = parseInt(feature.id, 10)
       if (Number.isNaN(numeric)) continue
-      const code = numericToCode.get(numeric)
+      const code = numericToCode.get(numeric) ?? NUMERIC_CODE_ALIASES.get(numeric)
       if (!code) continue
       const score = indexByCode[code]
       if (score == null) continue
