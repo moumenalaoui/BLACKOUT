@@ -68,7 +68,7 @@ export default function OutageFeed({ outages = [] }) {
           }}
         />
         <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: WHITE }}>
-          LIVE INTERNET OUTAGES
+          INTERNET OUTAGES
         </span>
         <span style={{ marginLeft: 'auto', fontFamily: MONO, fontSize: 10, color: CRIMSON }}>
           {outages.length}
