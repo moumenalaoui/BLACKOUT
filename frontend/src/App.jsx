@@ -297,6 +297,25 @@ export default function App() {
     }
   }, [selectedSatelliteId])
 
+  // A selected satellite can drop out of the live poll — its category got
+  // unchecked, or it decayed out of the catalog — while its orbit path stays
+  // fetched (that effect above is keyed only on `selectedSatelliteId`, not on
+  // `satellites`), leaving an orbit line on the globe with no selected point
+  // or card to justify it. Clearing the selection here removes the card (via
+  // `selectedSatellite` resolving to null) and the orbit (via the effect
+  // above re-running with `selectedSatelliteId` cleared). Guarded on a
+  // non-empty `satellites` so a transient empty poll (e.g. right after
+  // toggling the layer back on) doesn't spuriously clear a valid selection.
+  useEffect(() => {
+    if (
+      selectedSatelliteId != null &&
+      satellites.length > 0 &&
+      !satellites.some((s) => s.norad_id === selectedSatelliteId)
+    ) {
+      setSelectedSatelliteId(null)
+    }
+  }, [satellites, selectedSatelliteId])
+
   // No auto-selection on load — the globe's default state is intentionally
   // sparse (outlines + pulsing markers) until the user picks a country via
   // the globe or the dropdown.
