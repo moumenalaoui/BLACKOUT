@@ -1,0 +1,1362 @@
+[
+  {
+    "country_code": "AE",
+    "ixp_count": 4,
+    "total_net_count": 150,
+    "largest_ixp_name": "UAE-IX",
+    "largest_ixp_net_count": 104,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "AF",
+    "ixp_count": 1,
+    "total_net_count": 16,
+    "largest_ixp_name": "NIXA",
+    "largest_ixp_net_count": 16,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "AL",
+    "ixp_count": 1,
+    "total_net_count": 24,
+    "largest_ixp_name": "ANIX",
+    "largest_ixp_net_count": 24,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "AM",
+    "ixp_count": 2,
+    "total_net_count": 33,
+    "largest_ixp_name": "ArmIX",
+    "largest_ixp_net_count": 33,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "AO",
+    "ixp_count": 2,
+    "total_net_count": 36,
+    "largest_ixp_name": "angonix",
+    "largest_ixp_net_count": 23,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "AR",
+    "ixp_count": 5,
+    "total_net_count": 418,
+    "largest_ixp_name": "AR-IX Cabase - Argentina",
+    "largest_ixp_net_count": 373,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "AT",
+    "ixp_count": 6,
+    "total_net_count": 243,
+    "largest_ixp_name": "VIX",
+    "largest_ixp_net_count": 173,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "AU",
+    "ixp_count": 36,
+    "total_net_count": 1776,
+    "largest_ixp_name": "MegaIX Sydney",
+    "largest_ixp_net_count": 227,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BA",
+    "ixp_count": 1,
+    "total_net_count": 9,
+    "largest_ixp_name": "BHNIX",
+    "largest_ixp_net_count": 9,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BD",
+    "ixp_count": 10,
+    "total_net_count": 414,
+    "largest_ixp_name": "BDIX",
+    "largest_ixp_net_count": 166,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BE",
+    "ixp_count": 2,
+    "total_net_count": 109,
+    "largest_ixp_name": "BNIX",
+    "largest_ixp_net_count": 78,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BF",
+    "ixp_count": 2,
+    "total_net_count": 22,
+    "largest_ixp_name": "BFIX Ouagadougou",
+    "largest_ixp_net_count": 16,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BG",
+    "ixp_count": 9,
+    "total_net_count": 413,
+    "largest_ixp_name": "NetIX",
+    "largest_ixp_net_count": 133,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BH",
+    "ixp_count": 2,
+    "total_net_count": 28,
+    "largest_ixp_name": "Manama IX",
+    "largest_ixp_net_count": 28,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BI",
+    "ixp_count": 1,
+    "total_net_count": 9,
+    "largest_ixp_name": "BDIXP",
+    "largest_ixp_net_count": 9,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BJ",
+    "ixp_count": 1,
+    "total_net_count": 5,
+    "largest_ixp_name": "BENIN-IX",
+    "largest_ixp_net_count": 5,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BL",
+    "ixp_count": 1,
+    "total_net_count": 11,
+    "largest_ixp_name": "SBH-IX",
+    "largest_ixp_net_count": 11,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BN",
+    "ixp_count": 1,
+    "total_net_count": 11,
+    "largest_ixp_name": "Borneo-IX",
+    "largest_ixp_net_count": 11,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BO",
+    "ixp_count": 2,
+    "total_net_count": 23,
+    "largest_ixp_name": "PIT Bolivia",
+    "largest_ixp_net_count": 18,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BQ",
+    "ixp_count": 1,
+    "total_net_count": 7,
+    "largest_ixp_name": "AMS-IX Eastern Caribbean",
+    "largest_ixp_net_count": 7,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BR",
+    "ixp_count": 53,
+    "total_net_count": 5245,
+    "largest_ixp_name": "IX.br (PTT.br) São Paulo",
+    "largest_ixp_net_count": 1860,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BS",
+    "ixp_count": 1,
+    "total_net_count": 0,
+    "largest_ixp_name": "Ninja-IX Bahamas",
+    "largest_ixp_net_count": 0,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BT",
+    "ixp_count": 1,
+    "total_net_count": 15,
+    "largest_ixp_name": "btIX",
+    "largest_ixp_net_count": 15,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BW",
+    "ixp_count": 2,
+    "total_net_count": 1,
+    "largest_ixp_name": "Digital Delta IX",
+    "largest_ixp_net_count": 1,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "BY",
+    "ixp_count": 1,
+    "total_net_count": 7,
+    "largest_ixp_name": "BY-IX",
+    "largest_ixp_net_count": 7,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CA",
+    "ixp_count": 29,
+    "total_net_count": 927,
+    "largest_ixp_name": "TorIX",
+    "largest_ixp_net_count": 233,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CD",
+    "ixp_count": 4,
+    "total_net_count": 52,
+    "largest_ixp_name": "KINIX",
+    "largest_ixp_net_count": 23,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CG",
+    "ixp_count": 2,
+    "total_net_count": 9,
+    "largest_ixp_name": "CGIX-BZV",
+    "largest_ixp_net_count": 9,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CH",
+    "ixp_count": 15,
+    "total_net_count": 1336,
+    "largest_ixp_name": "FogIXP",
+    "largest_ixp_net_count": 433,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CI",
+    "ixp_count": 1,
+    "total_net_count": 14,
+    "largest_ixp_name": "CIVIX",
+    "largest_ixp_net_count": 14,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CL",
+    "ixp_count": 9,
+    "total_net_count": 218,
+    "largest_ixp_name": "PIT Santiago - PIT Chile",
+    "largest_ixp_net_count": 153,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CM",
+    "ixp_count": 3,
+    "total_net_count": 22,
+    "largest_ixp_name": "CAMIX Douala",
+    "largest_ixp_net_count": 10,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CN",
+    "ixp_count": 22,
+    "total_net_count": 176,
+    "largest_ixp_name": "ZXIX Hangzhou",
+    "largest_ixp_net_count": 28,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CO",
+    "ixp_count": 9,
+    "total_net_count": 188,
+    "largest_ixp_name": "PIT - Colombia - Bogota",
+    "largest_ixp_net_count": 61,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CR",
+    "ixp_count": 3,
+    "total_net_count": 45,
+    "largest_ixp_name": "CRIX",
+    "largest_ixp_net_count": 44,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CV",
+    "ixp_count": 1,
+    "total_net_count": 5,
+    "largest_ixp_name": "CV-IXP",
+    "largest_ixp_net_count": 5,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CW",
+    "ixp_count": 1,
+    "total_net_count": 8,
+    "largest_ixp_name": "AMS-IX Caribbean",
+    "largest_ixp_net_count": 8,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CY",
+    "ixp_count": 2,
+    "total_net_count": 7,
+    "largest_ixp_name": "JumboIX Cyprus",
+    "largest_ixp_net_count": 4,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "CZ",
+    "ixp_count": 6,
+    "total_net_count": 387,
+    "largest_ixp_name": "Peering.cz",
+    "largest_ixp_net_count": 190,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "DE",
+    "ixp_count": 58,
+    "total_net_count": 3867,
+    "largest_ixp_name": "DE-CIX Frankfurt",
+    "largest_ixp_net_count": 1018,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "DJ",
+    "ixp_count": 1,
+    "total_net_count": 20,
+    "largest_ixp_name": "AMS-IX Djibouti",
+    "largest_ixp_net_count": 20,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "DK",
+    "ixp_count": 8,
+    "total_net_count": 211,
+    "largest_ixp_name": "Netnod Copenhagen BLUE -- MTU9K",
+    "largest_ixp_net_count": 68,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "DM",
+    "ixp_count": 1,
+    "total_net_count": 3,
+    "largest_ixp_name": "DANIX",
+    "largest_ixp_net_count": 3,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "DO",
+    "ixp_count": 4,
+    "total_net_count": 76,
+    "largest_ixp_name": "PIT DOMINICANO",
+    "largest_ixp_net_count": 33,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "EC",
+    "ixp_count": 10,
+    "total_net_count": 78,
+    "largest_ixp_name": "NAP.EC - UIO",
+    "largest_ixp_net_count": 19,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "EE",
+    "ixp_count": 4,
+    "total_net_count": 122,
+    "largest_ixp_name": "PITER-IX Tallinn",
+    "largest_ixp_net_count": 68,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "EG",
+    "ixp_count": 3,
+    "total_net_count": 40,
+    "largest_ixp_name": "EG-IX",
+    "largest_ixp_net_count": 18,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "ES",
+    "ixp_count": 18,
+    "total_net_count": 701,
+    "largest_ixp_name": "DE-CIX Madrid",
+    "largest_ixp_net_count": 189,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "ET",
+    "ixp_count": 1,
+    "total_net_count": 3,
+    "largest_ixp_name": "Addix",
+    "largest_ixp_net_count": 3,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "FI",
+    "ixp_count": 14,
+    "total_net_count": 354,
+    "largest_ixp_name": "PITER-IX Helsinki",
+    "largest_ixp_net_count": 126,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "FJ",
+    "ixp_count": 1,
+    "total_net_count": 3,
+    "largest_ixp_name": "Fiji-IXP",
+    "largest_ixp_net_count": 3,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "FR",
+    "ixp_count": 27,
+    "total_net_count": 1478,
+    "largest_ixp_name": "France-IX Paris",
+    "largest_ixp_net_count": 452,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GA",
+    "ixp_count": 1,
+    "total_net_count": 8,
+    "largest_ixp_name": "GABIX",
+    "largest_ixp_net_count": 8,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GB",
+    "ixp_count": 29,
+    "total_net_count": 1941,
+    "largest_ixp_name": "LINX LON1",
+    "largest_ixp_net_count": 837,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GD",
+    "ixp_count": 1,
+    "total_net_count": 12,
+    "largest_ixp_name": "GREX",
+    "largest_ixp_net_count": 12,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GE",
+    "ixp_count": 1,
+    "total_net_count": 14,
+    "largest_ixp_name": "IXP.ge",
+    "largest_ixp_net_count": 14,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GF",
+    "ixp_count": 1,
+    "total_net_count": 3,
+    "largest_ixp_name": "Guyanix",
+    "largest_ixp_net_count": 3,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GH",
+    "ixp_count": 3,
+    "total_net_count": 55,
+    "largest_ixp_name": "GIXA",
+    "largest_ixp_net_count": 24,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GM",
+    "ixp_count": 1,
+    "total_net_count": 2,
+    "largest_ixp_name": "SIXP Gambia",
+    "largest_ixp_net_count": 2,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GN",
+    "ixp_count": 1,
+    "total_net_count": 4,
+    "largest_ixp_name": "IXP-GUINEE",
+    "largest_ixp_net_count": 4,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GR",
+    "ixp_count": 8,
+    "total_net_count": 189,
+    "largest_ixp_name": "GR-IX::Athens",
+    "largest_ixp_net_count": 66,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GT",
+    "ixp_count": 2,
+    "total_net_count": 43,
+    "largest_ixp_name": "PIT - Guatemala - Guatemala City",
+    "largest_ixp_net_count": 25,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "GU",
+    "ixp_count": 4,
+    "total_net_count": 27,
+    "largest_ixp_name": "Guam IX",
+    "largest_ixp_net_count": 12,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "HK",
+    "ixp_count": 17,
+    "total_net_count": 981,
+    "largest_ixp_name": "HKIX",
+    "largest_ixp_net_count": 260,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "HN",
+    "ixp_count": 3,
+    "total_net_count": 40,
+    "largest_ixp_name": "PIT Honduras",
+    "largest_ixp_net_count": 36,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "HR",
+    "ixp_count": 2,
+    "total_net_count": 41,
+    "largest_ixp_name": "CIX",
+    "largest_ixp_net_count": 41,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "HT",
+    "ixp_count": 1,
+    "total_net_count": 4,
+    "largest_ixp_name": "HIX Haiti",
+    "largest_ixp_net_count": 4,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "HU",
+    "ixp_count": 1,
+    "total_net_count": 103,
+    "largest_ixp_name": "BIX",
+    "largest_ixp_net_count": 103,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "ID",
+    "ixp_count": 80,
+    "total_net_count": 4867,
+    "largest_ixp_name": "JKT-IX",
+    "largest_ixp_net_count": 857,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "IE",
+    "ixp_count": 6,
+    "total_net_count": 205,
+    "largest_ixp_name": "INEX LAN1",
+    "largest_ixp_net_count": 107,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "IL",
+    "ixp_count": 3,
+    "total_net_count": 44,
+    "largest_ixp_name": "IL-IX",
+    "largest_ixp_net_count": 22,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "IM",
+    "ixp_count": 1,
+    "total_net_count": 0,
+    "largest_ixp_name": "ManxIX",
+    "largest_ixp_net_count": 0,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "IN",
+    "ixp_count": 42,
+    "total_net_count": 1930,
+    "largest_ixp_name": "DE-CIX Mumbai",
+    "largest_ixp_net_count": 449,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "IQ",
+    "ixp_count": 2,
+    "total_net_count": 35,
+    "largest_ixp_name": "IRAQ-IXP",
+    "largest_ixp_net_count": 32,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "IR",
+    "ixp_count": 2,
+    "total_net_count": 3,
+    "largest_ixp_name": "Tehran IX",
+    "largest_ixp_net_count": 3,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "IS",
+    "ixp_count": 3,
+    "total_net_count": 29,
+    "largest_ixp_name": "RIX",
+    "largest_ixp_net_count": 25,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "IT",
+    "ixp_count": 23,
+    "total_net_count": 1165,
+    "largest_ixp_name": "MIX-IT",
+    "largest_ixp_net_count": 398,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "JM",
+    "ixp_count": 1,
+    "total_net_count": 7,
+    "largest_ixp_name": "Jamaica Internet Exchange Point",
+    "largest_ixp_net_count": 7,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "JO",
+    "ixp_count": 1,
+    "total_net_count": 19,
+    "largest_ixp_name": "Aqaba IX",
+    "largest_ixp_net_count": 19,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "JP",
+    "ixp_count": 27,
+    "total_net_count": 1686,
+    "largest_ixp_name": "BBIX Tokyo",
+    "largest_ixp_net_count": 356,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "KE",
+    "ixp_count": 8,
+    "total_net_count": 297,
+    "largest_ixp_name": "KIXP - Nairobi",
+    "largest_ixp_net_count": 140,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "KG",
+    "ixp_count": 3,
+    "total_net_count": 27,
+    "largest_ixp_name": "KG-IX Bishkek",
+    "largest_ixp_net_count": 22,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "KH",
+    "ixp_count": 4,
+    "total_net_count": 52,
+    "largest_ixp_name": "CNX",
+    "largest_ixp_net_count": 48,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "KN",
+    "ixp_count": 1,
+    "total_net_count": 12,
+    "largest_ixp_name": "SKNIX",
+    "largest_ixp_net_count": 12,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "KR",
+    "ixp_count": 7,
+    "total_net_count": 135,
+    "largest_ixp_name": "KINX",
+    "largest_ixp_net_count": 90,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "KW",
+    "ixp_count": 1,
+    "total_net_count": 15,
+    "largest_ixp_name": "ix.kw",
+    "largest_ixp_net_count": 15,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "KZ",
+    "ixp_count": 15,
+    "total_net_count": 83,
+    "largest_ixp_name": "KAZ-GOV-IX Astana",
+    "largest_ixp_net_count": 15,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "LB",
+    "ixp_count": 3,
+    "total_net_count": 53,
+    "largest_ixp_name": "OpenIX Beirut",
+    "largest_ixp_net_count": 23,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "LI",
+    "ixp_count": 2,
+    "total_net_count": 47,
+    "largest_ixp_name": "Rheintal IX",
+    "largest_ixp_net_count": 37,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "LK",
+    "ixp_count": 1,
+    "total_net_count": 7,
+    "largest_ixp_name": "Colocix Internet Exchange",
+    "largest_ixp_net_count": 7,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "LS",
+    "ixp_count": 1,
+    "total_net_count": 3,
+    "largest_ixp_name": "Lesotho Internet Exchange Point",
+    "largest_ixp_net_count": 3,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "LT",
+    "ixp_count": 4,
+    "total_net_count": 101,
+    "largest_ixp_name": "BALT-IX",
+    "largest_ixp_net_count": 63,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "LU",
+    "ixp_count": 1,
+    "total_net_count": 85,
+    "largest_ixp_name": "LU-CIX",
+    "largest_ixp_net_count": 85,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "LV",
+    "ixp_count": 5,
+    "total_net_count": 105,
+    "largest_ixp_name": "PITER-IX Riga",
+    "largest_ixp_net_count": 68,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "LY",
+    "ixp_count": 1,
+    "total_net_count": 0,
+    "largest_ixp_name": "Tripoli IXP",
+    "largest_ixp_net_count": 0,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MA",
+    "ixp_count": 2,
+    "total_net_count": 6,
+    "largest_ixp_name": "CAS-IX",
+    "largest_ixp_net_count": 3,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MD",
+    "ixp_count": 2,
+    "total_net_count": 33,
+    "largest_ixp_name": "KIVIX",
+    "largest_ixp_net_count": 19,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "ME",
+    "ixp_count": 1,
+    "total_net_count": 2,
+    "largest_ixp_name": "MIXP.me",
+    "largest_ixp_net_count": 2,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MF",
+    "ixp_count": 2,
+    "total_net_count": 9,
+    "largest_ixp_name": "SXMIX",
+    "largest_ixp_net_count": 5,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MG",
+    "ixp_count": 1,
+    "total_net_count": 5,
+    "largest_ixp_name": "MGIX",
+    "largest_ixp_net_count": 5,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MK",
+    "ixp_count": 1,
+    "total_net_count": 17,
+    "largest_ixp_name": "IXP.mk",
+    "largest_ixp_net_count": 17,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "ML",
+    "ixp_count": 1,
+    "total_net_count": 5,
+    "largest_ixp_name": "MLIX",
+    "largest_ixp_net_count": 5,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MM",
+    "ixp_count": 3,
+    "total_net_count": 75,
+    "largest_ixp_name": "MMIX Yangon",
+    "largest_ixp_net_count": 45,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MN",
+    "ixp_count": 3,
+    "total_net_count": 21,
+    "largest_ixp_name": "MISPA-IXP",
+    "largest_ixp_net_count": 13,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MQ",
+    "ixp_count": 1,
+    "total_net_count": 2,
+    "largest_ixp_name": "MARTINIX",
+    "largest_ixp_net_count": 2,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MU",
+    "ixp_count": 1,
+    "total_net_count": 22,
+    "largest_ixp_name": "MIXP",
+    "largest_ixp_net_count": 22,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MV",
+    "ixp_count": 1,
+    "total_net_count": 8,
+    "largest_ixp_name": "MVIXP",
+    "largest_ixp_net_count": 8,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MW",
+    "ixp_count": 2,
+    "total_net_count": 15,
+    "largest_ixp_name": "MIX-BT",
+    "largest_ixp_net_count": 10,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MX",
+    "ixp_count": 10,
+    "total_net_count": 125,
+    "largest_ixp_name": "PIT MX",
+    "largest_ixp_net_count": 46,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MY",
+    "ixp_count": 7,
+    "total_net_count": 190,
+    "largest_ixp_name": "MyIX",
+    "largest_ixp_net_count": 119,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "MZ",
+    "ixp_count": 1,
+    "total_net_count": 18,
+    "largest_ixp_name": "MOZIX",
+    "largest_ixp_net_count": 18,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "NA",
+    "ixp_count": 1,
+    "total_net_count": 6,
+    "largest_ixp_name": "IXP Namibia",
+    "largest_ixp_net_count": 6,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "NC",
+    "ixp_count": 1,
+    "total_net_count": 5,
+    "largest_ixp_name": "CAN'L IX",
+    "largest_ixp_net_count": 5,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "NG",
+    "ixp_count": 6,
+    "total_net_count": 243,
+    "largest_ixp_name": "IXPN Lagos",
+    "largest_ixp_net_count": 125,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "NL",
+    "ixp_count": 34,
+    "total_net_count": 3739,
+    "largest_ixp_name": "AMS-IX",
+    "largest_ixp_net_count": 854,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "NO",
+    "ixp_count": 11,
+    "total_net_count": 175,
+    "largest_ixp_name": "NIX1",
+    "largest_ixp_net_count": 66,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "NP",
+    "ixp_count": 2,
+    "total_net_count": 48,
+    "largest_ixp_name": "npIX DH",
+    "largest_ixp_net_count": 30,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "NZ",
+    "ixp_count": 12,
+    "total_net_count": 332,
+    "largest_ixp_name": "AKL-IX (Auckland NZ)",
+    "largest_ixp_net_count": 98,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "OM",
+    "ixp_count": 2,
+    "total_net_count": 17,
+    "largest_ixp_name": "Oman-IX",
+    "largest_ixp_net_count": 10,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PA",
+    "ixp_count": 2,
+    "total_net_count": 36,
+    "largest_ixp_name": "InteRed Panama",
+    "largest_ixp_net_count": 26,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PE",
+    "ixp_count": 14,
+    "total_net_count": 193,
+    "largest_ixp_name": "PIT - Peru - Lima",
+    "largest_ixp_net_count": 90,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PG",
+    "ixp_count": 3,
+    "total_net_count": 19,
+    "largest_ixp_name": "PNG Neutral IX POM",
+    "largest_ixp_net_count": 13,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PH",
+    "ixp_count": 15,
+    "total_net_count": 423,
+    "largest_ixp_name": "GetaFIX Manila",
+    "largest_ixp_net_count": 125,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PK",
+    "ixp_count": 3,
+    "total_net_count": 9,
+    "largest_ixp_name": "Pakistan Internet Exchange (PIE) Karachi",
+    "largest_ixp_net_count": 9,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PL",
+    "ixp_count": 17,
+    "total_net_count": 1886,
+    "largest_ixp_name": "EPIX.Katowice",
+    "largest_ixp_net_count": 390,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PR",
+    "ixp_count": 2,
+    "total_net_count": 31,
+    "largest_ixp_name": "PR-IX",
+    "largest_ixp_net_count": 30,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PS",
+    "ixp_count": 2,
+    "total_net_count": 24,
+    "largest_ixp_name": "Palestine Internet Exchange Point - PSIX",
+    "largest_ixp_net_count": 21,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PT",
+    "ixp_count": 6,
+    "total_net_count": 155,
+    "largest_ixp_name": "DE-CIX Lisbon",
+    "largest_ixp_net_count": 62,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "PY",
+    "ixp_count": 3,
+    "total_net_count": 72,
+    "largest_ixp_name": "IX CDE SOCIEDAD ANONIMA",
+    "largest_ixp_net_count": 30,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "QA",
+    "ixp_count": 2,
+    "total_net_count": 38,
+    "largest_ixp_name": "QIX Qatar",
+    "largest_ixp_net_count": 28,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "RE",
+    "ixp_count": 1,
+    "total_net_count": 7,
+    "largest_ixp_name": "REUNIX",
+    "largest_ixp_net_count": 7,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "RO",
+    "ixp_count": 7,
+    "total_net_count": 208,
+    "largest_ixp_name": "InterLAN-IX",
+    "largest_ixp_net_count": 124,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "RS",
+    "ixp_count": 2,
+    "total_net_count": 43,
+    "largest_ixp_name": "SOX Serbia",
+    "largest_ixp_net_count": 43,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "RU",
+    "ixp_count": 42,
+    "total_net_count": 1454,
+    "largest_ixp_name": "MSK-IX Moscow",
+    "largest_ixp_net_count": 305,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "RW",
+    "ixp_count": 1,
+    "total_net_count": 17,
+    "largest_ixp_name": "RINEX",
+    "largest_ixp_net_count": 17,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SA",
+    "ixp_count": 5,
+    "total_net_count": 92,
+    "largest_ixp_name": "SAIX Saudi Arabia Riyadh",
+    "largest_ixp_net_count": 35,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SD",
+    "ixp_count": 1,
+    "total_net_count": 4,
+    "largest_ixp_name": "SIXP Sudan",
+    "largest_ixp_net_count": 4,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SE",
+    "ixp_count": 23,
+    "total_net_count": 889,
+    "largest_ixp_name": "Netnod Stockholm GREEN -- MTU1500",
+    "largest_ixp_net_count": 190,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SG",
+    "ixp_count": 12,
+    "total_net_count": 1172,
+    "largest_ixp_name": "Equinix Singapore",
+    "largest_ixp_net_count": 466,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SI",
+    "ixp_count": 1,
+    "total_net_count": 29,
+    "largest_ixp_name": "SIX SI",
+    "largest_ixp_net_count": 29,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SK",
+    "ixp_count": 5,
+    "total_net_count": 140,
+    "largest_ixp_name": "NIX.SK",
+    "largest_ixp_net_count": 65,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SL",
+    "ixp_count": 1,
+    "total_net_count": 5,
+    "largest_ixp_name": "Michcom-IX",
+    "largest_ixp_net_count": 5,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SN",
+    "ixp_count": 1,
+    "total_net_count": 6,
+    "largest_ixp_name": "HubSIX",
+    "largest_ixp_net_count": 6,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SO",
+    "ixp_count": 1,
+    "total_net_count": 0,
+    "largest_ixp_name": "SoIXP",
+    "largest_ixp_net_count": 0,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SR",
+    "ixp_count": 1,
+    "total_net_count": 8,
+    "largest_ixp_name": "SUR-IX",
+    "largest_ixp_net_count": 8,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SV",
+    "ixp_count": 1,
+    "total_net_count": 0,
+    "largest_ixp_name": "IXSal",
+    "largest_ixp_net_count": 0,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SX",
+    "ixp_count": 1,
+    "total_net_count": 5,
+    "largest_ixp_name": "OCIX",
+    "largest_ixp_net_count": 5,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "SZ",
+    "ixp_count": 1,
+    "total_net_count": 0,
+    "largest_ixp_name": "SISPA",
+    "largest_ixp_net_count": 0,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "TD",
+    "ixp_count": 1,
+    "total_net_count": 9,
+    "largest_ixp_name": "N'Djamena IX",
+    "largest_ixp_net_count": 9,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "TG",
+    "ixp_count": 1,
+    "total_net_count": 9,
+    "largest_ixp_name": "TGIX",
+    "largest_ixp_net_count": 9,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "TH",
+    "ixp_count": 12,
+    "total_net_count": 292,
+    "largest_ixp_name": "BKNIX (Thailand)",
+    "largest_ixp_net_count": 70,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "TJ",
+    "ixp_count": 1,
+    "total_net_count": 17,
+    "largest_ixp_name": "TJ-IX",
+    "largest_ixp_net_count": 17,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "TN",
+    "ixp_count": 1,
+    "total_net_count": 4,
+    "largest_ixp_name": "TunIXP",
+    "largest_ixp_net_count": 4,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "TR",
+    "ixp_count": 6,
+    "total_net_count": 112,
+    "largest_ixp_name": "DE-CIX Istanbul",
+    "largest_ixp_net_count": 69,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "TT",
+    "ixp_count": 2,
+    "total_net_count": 19,
+    "largest_ixp_name": "TTIX",
+    "largest_ixp_net_count": 11,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "TW",
+    "ixp_count": 10,
+    "total_net_count": 458,
+    "largest_ixp_name": "TPIX-TW",
+    "largest_ixp_net_count": 166,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "TZ",
+    "ixp_count": 7,
+    "total_net_count": 75,
+    "largest_ixp_name": "TIX Tanzania - Dar es Salaam",
+    "largest_ixp_net_count": 32,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "UA",
+    "ixp_count": 25,
+    "total_net_count": 992,
+    "largest_ixp_name": "Giganet IXN",
+    "largest_ixp_net_count": 267,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "UG",
+    "ixp_count": 1,
+    "total_net_count": 28,
+    "largest_ixp_name": "UIXP",
+    "largest_ixp_net_count": 28,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "US",
+    "ixp_count": 212,
+    "total_net_count": 7193,
+    "largest_ixp_name": "SIX Seattle",
+    "largest_ixp_net_count": 368,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "UZ",
+    "ixp_count": 3,
+    "total_net_count": 23,
+    "largest_ixp_name": "SNS-IX",
+    "largest_ixp_net_count": 18,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "VC",
+    "ixp_count": 1,
+    "total_net_count": 4,
+    "largest_ixp_name": "SVGIX",
+    "largest_ixp_net_count": 4,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "VE",
+    "ixp_count": 5,
+    "total_net_count": 57,
+    "largest_ixp_name": "NAPVE MCBO",
+    "largest_ixp_net_count": 20,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "VG",
+    "ixp_count": 1,
+    "total_net_count": 8,
+    "largest_ixp_name": "BVIX",
+    "largest_ixp_net_count": 8,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "VN",
+    "ixp_count": 4,
+    "total_net_count": 20,
+    "largest_ixp_name": "VNIX-HN",
+    "largest_ixp_net_count": 7,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "VU",
+    "ixp_count": 1,
+    "total_net_count": 6,
+    "largest_ixp_name": "VIX.VU",
+    "largest_ixp_net_count": 6,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "XK",
+    "ixp_count": 1,
+    "total_net_count": 6,
+    "largest_ixp_name": "KOSIX",
+    "largest_ixp_net_count": 6,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "ZA",
+    "ixp_count": 12,
+    "total_net_count": 1454,
+    "largest_ixp_name": "NAPAfrica IX Johannesburg",
+    "largest_ixp_net_count": 543,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "ZM",
+    "ixp_count": 1,
+    "total_net_count": 12,
+    "largest_ixp_name": "Lusaka Internet Exchange Point",
+    "largest_ixp_net_count": 12,
+    "generated_at": "2026-09-06"
+  },
+  {
+    "country_code": "ZW",
+    "ixp_count": 1,
+    "total_net_count": 2,
+    "largest_ixp_name": "Harare IX",
+    "largest_ixp_net_count": 2,
+    "generated_at": "2026-09-06"
+  }
+]

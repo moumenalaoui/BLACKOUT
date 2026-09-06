@@ -3,6 +3,7 @@ use crate::models::{
     country::Country,
     country_reference::CountryReference,
     deployment::Status,
+    ixp::IxpStats,
     model_release::ModelRelease,
     signal::AdoptionSignal,
     starlink_status::StarlinkStatus,
@@ -45,6 +46,7 @@ pub fn load_all(conn: &Connection) -> Result<()> {
         load_starlink_status(conn)?;
         load_cable_routes(conn)?;
         load_cable_landing_points(conn)?;
+        load_ixp_stats(conn)?;
         load_countries(conn)?;
         load_models(conn)?;
         load_signals(conn)?;
@@ -154,6 +156,27 @@ fn load_cable_landing_points(conn: &Connection) -> Result<()> {
         conn.execute(
             "INSERT OR REPLACE INTO cable_landing_points VALUES (?1,?2,?3,?4,?5,?6)",
             rusqlite::params![r.id, r.name, r.country_code, r.is_tbd as i64, r.lon, r.lat],
+        )?;
+    }
+    Ok(())
+}
+
+/// Generated (by scripts/gen_ixp_data.mjs), like the cable tables above —
+/// `INSERT OR REPLACE` so re-running the generator and restarting actually
+/// takes effect.
+fn load_ixp_stats(conn: &Connection) -> Result<()> {
+    let rows: Vec<IxpStats> = read_seed("ixp_stats.json")?;
+    for r in rows {
+        conn.execute(
+            "INSERT OR REPLACE INTO ixp_stats VALUES (?1,?2,?3,?4,?5,?6)",
+            rusqlite::params![
+                r.country_code,
+                r.ixp_count,
+                r.total_net_count,
+                r.largest_ixp_name,
+                r.largest_ixp_net_count,
+                r.generated_at,
+            ],
         )?;
     }
     Ok(())

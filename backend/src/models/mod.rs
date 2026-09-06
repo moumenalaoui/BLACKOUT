@@ -9,6 +9,7 @@ pub mod country_score;
 #[allow(dead_code)]
 pub mod deployment;
 pub mod http_protocol_share;
+pub mod ixp;
 pub mod model_release;
 pub mod outage_event;
 pub mod satellite;

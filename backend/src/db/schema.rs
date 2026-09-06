@@ -98,6 +98,21 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             lat           REAL NOT NULL
         );
 
+        -- Per-country Internet Exchange Point density, generated once (by
+        -- scripts/gen_ixp_data.mjs) from PeeringDB's public directory. The
+        -- structural counterpart to ripestat_bgp_visibility: a country routed
+        -- through very few domestic exchange points depends on a handful of
+        -- international gateways, which is what makes a full shutdown fast
+        -- and cheap. Absence of a row means zero known IXPs, not unknown.
+        CREATE TABLE IF NOT EXISTS ixp_stats (
+            country_code          TEXT PRIMARY KEY,
+            ixp_count             INTEGER NOT NULL,
+            total_net_count       INTEGER NOT NULL,
+            largest_ixp_name      TEXT NOT NULL,
+            largest_ixp_net_count INTEGER NOT NULL,
+            generated_at          TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS countries (
             country_code             TEXT PRIMARY KEY,
             country_name             TEXT NOT NULL,
