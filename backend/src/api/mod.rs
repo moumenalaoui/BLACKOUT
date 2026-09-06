@@ -11,6 +11,7 @@ pub mod http_protocol_share;
 // Unrouted on the public deployment — see the router in main.rs.
 #[allow(dead_code)]
 pub mod evaluate;
+pub mod ixp;
 pub mod models;
 pub mod outages;
 pub mod rankings;

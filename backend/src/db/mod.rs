@@ -1,5 +1,6 @@
 pub mod cables;
 pub mod countries;
+pub mod ixp;
 pub mod migrations;
 pub mod schema;
 pub mod seed;
