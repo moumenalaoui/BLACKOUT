@@ -32,6 +32,10 @@ const ISO_URL =
 // cycle so their data stays freshest.
 const FOCUS = new Set(['IR', 'SY', 'AE', 'SA', 'IQ'])
 
+// Treat Western Sahara as Morocco in this app: the standalone EH feed is too
+// sparse to be useful, and the frontend aliases its atlas polygon to MA.
+const EXCLUDED_CODES = new Set(['EH'])
+
 // The basemap carries 5 features with no ISO numeric id, because they are
 // territories ISO 3166-1 does not assign a code to. Only Kosovo gets a code
 // here — XK is the user-assigned code in de facto standard use (and what the
@@ -166,6 +170,7 @@ const rows = []
 
 for (const c of iso) {
   const code = c['alpha-2']
+  if (EXCLUDED_CODES.has(code)) continue
   const numeric = String(c['country-code']).padStart(3, '0')
   const geo = geoByNumeric.get(numeric)
   rows.push({
