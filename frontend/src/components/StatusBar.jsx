@@ -1,4 +1,4 @@
-import { AMBER, BORDER, BORDER_STRONG, CRIMSON, LOCAL, MONO, MUTED, SIDEBAR, WHITE } from '../theme'
+import { AMBER, BORDER, BORDER_STRONG, CRIMSON, CYAN, LOCAL, MONO, MUTED, SIDEBAR, WHITE } from '../theme'
 import { SOURCES } from '../lib/sources'
 
 // Honest link state: mirrors whether the primary country fetch is in flight,
@@ -66,14 +66,23 @@ export default function StatusBar({ status = 'ok', dataAge = null }) {
     >
       {/* Inline rather than in App.css because it is the only rule this
           component needs — same pattern the outage feed uses for its pulse. */}
-      <style>{`.repo-link:hover { color: ${WHITE} }`}</style>
+      <style>{`.repo-link:hover { color: ${WHITE} } .source-link:hover { color: ${CYAN} }`}</style>
 
       <span style={{ color: MUTED }}>SOURCES</span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {SOURCES.map((source, i) => (
           <span key={source.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {i > 0 && <span style={{ color: BORDER_STRONG }}>·</span>}
-            <span style={{ color: WHITE }}>{source.label}</span>
+            <a
+              className="source-link"
+              href={source.url}
+              target="_blank"
+              rel="noreferrer noopener"
+              title={source.url}
+              style={{ color: WHITE, textDecoration: 'none' }}
+            >
+              {source.label}
+            </a>
           </span>
         ))}
       </span>
