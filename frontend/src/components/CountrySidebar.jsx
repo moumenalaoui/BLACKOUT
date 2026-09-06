@@ -6,6 +6,7 @@ import Http3ShareChart from './Http3ShareChart'
 import MessagingStatus from './MessagingStatus'
 import OutageTimeline from './OutageTimeline'
 import ResilienceIndex from './ResilienceIndex'
+import StarlinkBadge from './StarlinkBadge'
 import TimelineChart from './TimelineChart'
 import TorChart from './TorChart'
 import {
@@ -66,7 +67,7 @@ function BlockingTechRow({ tech, row, countryCode, timelineRows }) {
   )
 }
 
-export default function CountrySidebar({ country, layer, onClose }) {
+export default function CountrySidebar({ country, layer, starlinkStatus, onClose }) {
   const [blockingRows, setBlockingRows] = useState([])
   const [timelineByTech, setTimelineByTech] = useState({})
 
@@ -148,6 +149,7 @@ export default function CountrySidebar({ country, layer, onClose }) {
           </button>
         </div>
 
+        <StarlinkBadge entry={starlinkStatus} />
       </div>
 
       <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>

@@ -47,6 +47,25 @@ export async function getGeo() {
   return r.json()
 }
 
+// Hand-curated Starlink legal/regulatory status per country (~25 rows, not a
+// live feed — see backend/data/seed/starlink_status.json). Fetched once, like
+// getGeo(); absence of a country in the list means no known restriction.
+export async function getStarlinkStatus() {
+  const r = await fetch(`${BASE}/starlink-status`)
+  if (!r.ok) throw new Error('Failed to fetch Starlink status')
+  return r.json()
+}
+
+// Submarine cable routes + landing points from TeleGeography, generated once
+// by backend/scripts/gen_cable_data.mjs — static infrastructure data, not a
+// live feed. Fetched once regardless of the layer's toggle state, matching
+// getGeo()'s eager-fetch convention.
+export async function getCables() {
+  const r = await fetch(`${BASE}/cables`)
+  if (!r.ok) throw new Error('Failed to fetch cables')
+  return r.json()
+}
+
 // IODA internet-outage events. `active` restricts to outages that ended
 // within the backend's recent-activity grace window (the "live" set);
 // `country` restricts to one country's history.
