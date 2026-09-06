@@ -103,6 +103,11 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/countries", get(api::countries::list_countries))
         .route("/api/countries/:code", get(api::countries::get_country))
         .route("/api/geo", get(api::geo::list_geo))
+        .route(
+            "/api/starlink-status",
+            get(api::starlink_status::list_starlink_status),
+        )
+        .route("/api/cables", get(api::cables::list_cables))
         .route("/api/models", get(api::models::list_models))
         .route("/api/signals", get(api::signals::list_signals))
         .route("/api/blocking", get(api::blocking::list_blocking))

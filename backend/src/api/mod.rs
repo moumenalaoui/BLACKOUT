@@ -1,5 +1,6 @@
 pub mod bgp_visibility;
 pub mod blocking;
+pub mod cables;
 pub mod categories;
 pub mod censorship_index;
 pub mod countries;
@@ -15,5 +16,6 @@ pub mod outages;
 pub mod rankings;
 pub mod satellites;
 pub mod signals;
+pub mod starlink_status;
 pub mod timeline;
 pub mod tor_metrics;

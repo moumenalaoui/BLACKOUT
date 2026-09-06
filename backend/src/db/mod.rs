@@ -1,7 +1,9 @@
+pub mod cables;
 pub mod countries;
 pub mod migrations;
 pub mod schema;
 pub mod seed;
+pub mod starlink_status;
 
 use crate::AppState;
 use anyhow::{Result, bail};
