@@ -1,0 +1,28 @@
+import { MONO, MUTED, WHITE } from '../theme'
+
+// Structural chokepoint signal, not a live measurement (see backend/data/
+// seed/ixp_stats.json, generated once by gen_ixp_data.mjs) — a country with
+// very few domestic exchange points routes nearly all its traffic through a
+// handful of international gateways, making a full shutdown fast and cheap.
+// Unlike StarlinkBadge, `entry` absent still renders: 0 known exchange
+// points is itself the strongest reading this signal can give, not a "no
+// data" case to hide.
+export default function IxpBadge({ entry }) {
+  const ixpCount = entry?.ixp_count ?? 0
+  const netCount = entry?.total_net_count ?? 0
+  const largestName = entry?.largest_ixp_name
+  const largestNet = entry?.largest_ixp_net_count
+
+  return (
+    <div style={{ marginTop: 8, border: `1px solid ${MUTED}33`, padding: '4px 8px' }}>
+      <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.05em', color: WHITE }}>
+        INTERNET EXCHANGE POINTS: {ixpCount}
+      </div>
+      <div style={{ fontFamily: MONO, fontSize: 8, color: MUTED, marginTop: 2 }}>
+        {netCount} network{netCount === 1 ? '' : 's'} connected
+        {largestName ? ` · largest: ${largestName} (${largestNet})` : ''}
+        {' · via PeeringDB, manually refreshed'}
+      </div>
+    </div>
+  )
+}

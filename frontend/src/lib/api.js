@@ -66,6 +66,15 @@ export async function getCables() {
   return r.json()
 }
 
+// Per-country Internet Exchange Point density from PeeringDB, generated once
+// by backend/scripts/gen_ixp_data.mjs — static infrastructure data, not a
+// live feed. Fetched once on mount, like getStarlinkStatus()/getCables().
+export async function getIxpStats() {
+  const r = await fetch(`${BASE}/ixp-stats`)
+  if (!r.ok) throw new Error('Failed to fetch IXP stats')
+  return r.json()
+}
+
 // IODA internet-outage events. `active` restricts to outages that ended
 // within the backend's recent-activity grace window (the "live" set);
 // `country` restricts to one country's history.
