@@ -17,9 +17,39 @@ import {
   GROUP_LABELS,
   hasTimeline,
 } from '../lib/blockingRegistry'
-import { BORDER, MONO, MUTED, SIDEBAR, WHITE } from '../theme'
+import { BORDER, BORDER_STRONG, MONO, MUTED, SIDEBAR, WHITE } from '../theme'
 
 const ALL_TECHNOLOGIES = Object.values(BLOCKING_REGISTRY).flat()
+
+// A visual "theme" is one level above the small per-widget MONO headers
+// (BLOCKING STATUS, MESSAGING APPS, etc.) — it groups related signals (access
+// blocking, censorship, network/protocol, resilience) behind a bolder label
+// and a real divider line, so unrelated signals don't read as one continuous
+// blob when they only had an 18px gap between them.
+//
+// paddingBottom matters as much as paddingTop here: with only paddingTop, the
+// divider line sits flush against whatever the *previous* section's last
+// widget happens to render (a quiet footnote vs. a dense row of pill badges),
+// so the same 16px gap reads as "loose" after one widget and "cramped" after
+// another. Padding both sides guarantees a fixed quiet zone around the line
+// itself, independent of what content sits on either side of it.
+function ThemeSection({ title, first, children }) {
+  return (
+    <section
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 18,
+        paddingTop: first ? 0 : 16,
+        paddingBottom: 16,
+        borderTop: first ? 'none' : `1px solid ${BORDER_STRONG}`,
+      }}
+    >
+      <div style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.14em', color: WHITE }}>{title}</div>
+      {children}
+    </section>
+  )
+}
 
 function BlockSegments({ filledCount, color }) {
   return (
@@ -39,6 +69,47 @@ function isMeaningful(row, timelineRows) {
   const hasPointSignal = !!row && row.measurement_count > 0 && row.status !== 'INCONCLUSIVE'
   const hasTimelineSignal = (timelineRows?.length ?? 0) > 0
   return hasPointSignal || hasTimelineSignal
+}
+
+function BlockingGroupList({ groups, blockingByTech, timelineByTech, countryCode, showGroupLabel = true }) {
+  return (
+    <>
+      {groups.map(({ group, techs }, i) => (
+        <div
+          key={group}
+          style={{
+            marginBottom: 10,
+            paddingTop: i === 0 ? 0 : 8,
+            borderTop: i === 0 ? 'none' : `1px solid ${BORDER}`,
+          }}
+        >
+          {showGroupLabel && (
+            <p
+              style={{
+                fontFamily: MONO,
+                fontSize: 9,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                color: MUTED,
+                marginBottom: 2,
+              }}
+            >
+              {GROUP_LABELS[group]}
+            </p>
+          )}
+          {techs.map((tech) => (
+            <BlockingTechRow
+              key={tech}
+              tech={tech}
+              row={blockingByTech[tech]}
+              countryCode={countryCode}
+              timelineRows={timelineByTech[tech]}
+            />
+          ))}
+        </div>
+      ))}
+    </>
+  )
 }
 
 function BlockingTechRow({ tech, row, countryCode, timelineRows }) {
@@ -123,6 +194,11 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
     }))
     .filter(({ techs }) => techs.length > 0)
 
+  const aiAccessGroups = visibleGroups.filter(({ group }) => group === 'AI_ACCESS')
+  const circumventionGroups = visibleGroups.filter(
+    ({ group }) => group === 'CIRCUMVENTION' || group === 'PRIVACY_OS',
+  )
+
   return (
     <div
       style={{
@@ -154,59 +230,67 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
         <IxpBadge entry={ixpStats} />
       </div>
 
-      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-        {visibleGroups.length > 0 && (
-          <section>
-            <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: MUTED, marginBottom: 8 }}>
-              BLOCKING STATUS
-            </div>
-            {visibleGroups.map(({ group, techs }) => (
-              <div key={group} style={{ marginBottom: 10 }}>
-                <p
-                  style={{
-                    fontFamily: MONO,
-                    fontSize: 9,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: MUTED,
-                    marginBottom: 2,
-                  }}
-                >
-                  {GROUP_LABELS[group]}
-                </p>
-                {techs.map((tech) => (
-                  <BlockingTechRow
-                    key={tech}
-                    tech={tech}
-                    row={blockingByTech[tech]}
-                    countryCode={country.country_code}
-                    timelineRows={timelineByTech[tech]}
-                  />
-                ))}
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <ThemeSection title="NETWORK & PROTOCOL" first>
+          <OutageTimeline countryCode={country.country_code} />
+
+          <Http3ShareChart countryCode={country.country_code} />
+
+          <BgpVisibilityChart countryCode={country.country_code} />
+        </ThemeSection>
+
+        {aiAccessGroups.length > 0 && (
+          <ThemeSection title="AI ACCESS">
+            <div>
+              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: MUTED, marginBottom: 8 }}>
+                BLOCKING STATUS
               </div>
-            ))}
-          </section>
+              <BlockingGroupList
+                groups={aiAccessGroups}
+                blockingByTech={blockingByTech}
+                timelineByTech={timelineByTech}
+                countryCode={country.country_code}
+                showGroupLabel={false}
+              />
+            </div>
+          </ThemeSection>
         )}
 
-        {/* Tor relay/bridge usage. Rendered from its own /api/tor-metrics data
-            (it returns null when empty) rather than gated on a "meaningful" tor
-            blocking row, so it surfaces for every country that has Tor data —
-            not just those with a point-in-time blocking classification. */}
-        <TorChart countryCode={country.country_code} />
+        <ThemeSection title="CENSORSHIP">
+          <CategoryBreakdown countryCode={country.country_code} />
+        </ThemeSection>
 
-        <MessagingStatus countryCode={country.country_code} />
+        <ThemeSection title="MESSAGING">
+          <MessagingStatus countryCode={country.country_code} />
+        </ThemeSection>
 
-        <CategoryBreakdown countryCode={country.country_code} />
+        <ThemeSection title="CIRCUMVENTION">
+          {circumventionGroups.length > 0 && (
+            <div>
+              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: MUTED, marginBottom: 8 }}>
+                BLOCKING STATUS
+              </div>
+              <BlockingGroupList
+                groups={circumventionGroups}
+                blockingByTech={blockingByTech}
+                timelineByTech={timelineByTech}
+                countryCode={country.country_code}
+              />
+            </div>
+          )}
 
-        <OutageTimeline countryCode={country.country_code} />
+          {/* Tor relay/bridge usage. Rendered from its own /api/tor-metrics data
+              (it returns null when empty) rather than gated on a "meaningful" tor
+              blocking row, so it surfaces for every country that has Tor data —
+              not just those with a point-in-time blocking classification. */}
+          <TorChart countryCode={country.country_code} />
+        </ThemeSection>
 
-        <Http3ShareChart countryCode={country.country_code} />
+        <ThemeSection title="RESILIENCE & FREEDOM INDICES">
+          <ResilienceIndex countryCode={country.country_code} />
 
-        <BgpVisibilityChart countryCode={country.country_code} />
-
-        <ResilienceIndex countryCode={country.country_code} />
-
-        <GlobalIndices countryCode={country.country_code} />
+          <GlobalIndices countryCode={country.country_code} />
+        </ThemeSection>
       </div>
     </div>
   )
