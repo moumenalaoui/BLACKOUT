@@ -76,12 +76,7 @@ pub fn run(conn: &Connection) -> Result<()> {
 /// from a blind `ADD COLUMN`: SQLite reports a duplicate column as a generic
 /// `SqliteFailure`, which is indistinguishable from a real failure (bad type,
 /// missing table) without string-matching the message.
-fn add_column_if_missing(
-    conn: &Connection,
-    table: &str,
-    column: &str,
-    decl: &str,
-) -> Result<bool> {
+fn add_column_if_missing(conn: &Connection, table: &str, column: &str, decl: &str) -> Result<bool> {
     if !table_exists(conn, table)? {
         // create_tables runs first, so a missing table means the entry names a
         // table that no longer exists — a stale migration, worth failing on

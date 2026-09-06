@@ -57,7 +57,14 @@ const AGGREGATION_ENDPOINT: &str = "https://api.ooni.io/api/v1/aggregation";
 // countries in a single 2-D aggregation request (day x country), so — unlike
 // the old hardcoded (country, technology) TIMELINE_TARGETS table — this list is
 // technology-only and the country dimension comes from the response.
-const TIMELINE_TECHS: &[&str] = &["torproject", "signal", "i2p", "psiphon", "torsf", "openai.com"];
+const TIMELINE_TECHS: &[&str] = &[
+    "torproject",
+    "signal",
+    "i2p",
+    "psiphon",
+    "torsf",
+    "openai.com",
+];
 
 // ── Aggregation response ───────────────────────────────────────────────────
 
@@ -314,7 +321,10 @@ async fn get_with_retry(
 }
 
 /// One aggregation request → its flat list of cells.
-async fn fetch_aggregation(client: &reqwest::Client, query: &[(&str, &str)]) -> Result<Vec<AggCell>> {
+async fn fetch_aggregation(
+    client: &reqwest::Client,
+    query: &[(&str, &str)],
+) -> Result<Vec<AggCell>> {
     let resp = get_with_retry(client, AGGREGATION_ENDPOINT, query).await?;
     Ok(resp.json::<AggResponse>().await?.result)
 }
@@ -431,8 +441,9 @@ fn insert_signals(state: &AppState, url: &str, rows: &[SignalRow]) -> Result<()>
         .map_err(|_| anyhow::anyhow!("db lock poisoned"))?;
     let tx = conn.transaction()?;
     {
-        let mut stmt =
-            tx.prepare("INSERT OR REPLACE INTO adoption_signals VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)")?;
+        let mut stmt = tx.prepare(
+            "INSERT OR REPLACE INTO adoption_signals VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+        )?;
         for r in rows {
             let signal_id = format!("ooni-{}-{}-{date}", r.country, slug(url));
             let value_text = format!(
@@ -477,7 +488,10 @@ struct TechRow {
 /// inserting a current point-in-time status per country into
 /// `technology_blocks`. Request count is `REGISTRY.len()`, independent of how
 /// many countries come back.
-async fn fetch_and_store_technology_blocks(state: &AppState, known: &HashSet<String>) -> Result<()> {
+async fn fetch_and_store_technology_blocks(
+    state: &AppState,
+    known: &HashSet<String>,
+) -> Result<()> {
     let client = reqwest::Client::builder()
         .timeout(REQUEST_TIMEOUT)
         .build()?;

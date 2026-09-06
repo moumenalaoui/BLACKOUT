@@ -170,7 +170,10 @@ pub async fn fetch_and_store(state: &AppState) -> Result<()> {
         if !known.contains(&cc) {
             continue;
         }
-        bridge_by_country.entry(cc).or_default().insert(b.date, b.users);
+        bridge_by_country
+            .entry(cc)
+            .or_default()
+            .insert(b.date, b.users);
     }
 
     // Same country normalisation as the other two CSVs — the combined endpoint
@@ -327,10 +330,7 @@ async fn fetch_relay_csv(client: &reqwest::Client) -> Result<Vec<RelayRecord>> {
 }
 
 async fn fetch_bridge_csv(client: &reqwest::Client) -> Result<Vec<BridgeRecord>> {
-    let url = format!(
-        "{BRIDGE_ENDPOINT}?start={START_DATE}&end={}",
-        end_date()
-    );
+    let url = format!("{BRIDGE_ENDPOINT}?start={START_DATE}&end={}", end_date());
     let body = client
         .get(&url)
         .send()
