@@ -515,11 +515,21 @@ export default function App() {
               centered enough to overlap the bottom of that list. Bounding +
               centering within the remaining space fixes that at any width,
               rather than a fixed pixel nudge that would only hold at one
-              specific window size. */}
+              specific window size.
+
+              `position: fixed` (viewport-relative) rather than `absolute`
+              (relative to <main>) is deliberate: <main> is a flex sibling of
+              the country sidebar and shrinks by the sidebar's width whenever
+              one is open, which shifted this group visibly left every time a
+              country was selected. Fixed positioning is anchored to the
+              window instead, so it holds the same spot on screen regardless
+              of sidebar state — `bottom: 36` reproduces the same visual
+              offset as the old `bottom: 12` inside <main> once the 24px
+              StatusBar footer below <main> is accounted for. */}
           <div
             style={{
-              position: 'absolute',
-              bottom: 12,
+              position: 'fixed',
+              bottom: 36,
               left: 288,
               right: 12,
               display: 'flex',
