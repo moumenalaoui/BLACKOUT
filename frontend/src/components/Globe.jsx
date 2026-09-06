@@ -4,6 +4,7 @@ import * as topojson from 'topojson-client'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { AMBER, CRIMSON } from '../theme'
 import { BLOCKING_STATUS_COLOR } from '../lib/blockingRegistry'
+import { CATEGORY_COLOR_HEX } from './SatelliteLegend'
 
 // Read from the environment rather than inlined here: anything in this file
 // ships to the browser *and* to git. The Viewer below runs with
@@ -153,27 +154,12 @@ function satelliteDisplayHeight(altKm) {
   return SAT_DISPLAY_MIN_M + t * (SAT_DISPLAY_MAX_M - SAT_DISPLAY_MIN_M)
 }
 
-// One distinct, saturated colour per category — deliberately more vivid than
-// the app's muted dashboard palette (theme.js), which is tuned for text/chrome
-// rather than for telling apart small dots at a glance. Chosen so no two
-// categories share a hue family (previously two categories were both
-// gold/orange and two were both grey, which read as one blob at a glance).
-// Falls back to the "other" grey for any category not in this table (e.g. a
-// future `SATELLITE_GROUPS` addition the frontend hasn't been taught yet).
-const SATELLITE_CATEGORY_HEX = {
-  starlink: '#29d3f5', // cyan
-  gps: '#ffd23f',      // yellow
-  galileo: '#5cd65c',  // green
-  glonass: '#ff4d6d',  // red/pink
-  beidou: '#ff9f1c',   // orange
-  geo: '#b48cff',      // violet
-  other: '#9aa5b1',    // neutral grey-blue
-}
-
+// Colour palette lives in SatelliteLegend.jsx (the legend's swatches must
+// match the globe's points, so one shared source avoids the two drifting).
 const satelliteColorCache = new Map()
 function satelliteColor(category) {
   if (!satelliteColorCache.has(category)) {
-    const hex = SATELLITE_CATEGORY_HEX[category] ?? SATELLITE_CATEGORY_HEX.other
+    const hex = CATEGORY_COLOR_HEX[category] ?? CATEGORY_COLOR_HEX.other
     satelliteColorCache.set(category, Cesium.Color.fromCssColorString(hex))
   }
   return satelliteColorCache.get(category)
@@ -652,7 +638,7 @@ export default function Globe({
       points.add({
         id: sat.norad_id,
         position: Cesium.Cartesian3.fromDegrees(sat.lon, sat.lat, satelliteDisplayHeight(sat.alt_km)),
-        pixelSize: selected ? 7 : sat.category === 'starlink' ? 3 : 5,
+        pixelSize: selected ? 5 : sat.category === 'starlink' ? 2 : 3,
         color: satelliteColor(sat.category),
         outlineColor: Cesium.Color.WHITE,
         outlineWidth: selected ? 2 : 0,

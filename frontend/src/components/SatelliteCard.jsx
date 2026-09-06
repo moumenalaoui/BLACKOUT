@@ -1,11 +1,11 @@
 import { BORDER, MONO, MUTED, SIDEBAR, WHITE } from '../theme'
+import { SPACE_TRACKING_OPTIONS } from './SatelliteLegend'
 
+// Shared with the legend's row labels for the 5 headline categories; `geo`/
+// `other` aren't headline rows there (no dedicated legend row, only reachable
+// via "All Satellites") so they get a small local fallback here instead.
 const CATEGORY_LABEL = {
-  starlink: 'Starlink',
-  gps: 'GPS',
-  galileo: 'Galileo',
-  glonass: 'GLONASS',
-  beidou: 'BeiDou',
+  ...Object.fromEntries(SPACE_TRACKING_OPTIONS.map(({ key, label }) => [key, label])),
   geo: 'GEO',
   other: 'Other',
 }
