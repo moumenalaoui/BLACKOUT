@@ -93,3 +93,24 @@ export async function getMessaging(countryCode) {
   if (!r.ok) throw new Error('Failed to fetch messaging status')
   return r.json()
 }
+
+// Satellite positions, SGP4-propagated server-side from cached CelesTrak
+// orbital elements. Computed fresh on every call — there is no server-side
+// position cache — so the caller is expected to poll this every 5-10s for
+// satellites that visibly move, rather than fetching it once.
+export async function getSatellites(categories) {
+  const params = new URLSearchParams()
+  if (categories && categories.length > 0) params.set('categories', categories.join(','))
+  const qs = params.toString()
+  const r = await fetch(`${BASE}/satellites${qs ? `?${qs}` : ''}`)
+  if (!r.ok) throw new Error('Failed to fetch satellites')
+  return r.json()
+}
+
+// One satellite's orbit path (pre-split at the antimeridian into drawable
+// segments), for the currently-selected satellite only.
+export async function getSatelliteOrbit(noradId) {
+  const r = await fetch(`${BASE}/satellites/${noradId}/orbit`)
+  if (!r.ok) throw new Error(`Failed to fetch orbit for ${noradId}`)
+  return r.json()
+}

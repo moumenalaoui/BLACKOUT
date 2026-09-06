@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as Cesium from 'cesium'
 import * as topojson from 'topojson-client'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
-import { AMBER, BLACK, CRIMSON } from '../theme'
+import { AMBER, CRIMSON } from '../theme'
 import { BLOCKING_STATUS_COLOR } from '../lib/blockingRegistry'
 
 // Read from the environment rather than inlined here: anything in this file
@@ -37,6 +37,10 @@ function outageRadius(score) {
   if (score >= 60) return 240_000
   return 160_000
 }
+
+// Empty-space colour behind/around the globe (skybox is off — see init —
+// so this, not a starfield texture, is what fills it).
+const SPACE_BG = '#040409'
 
 // Whole-globe framing, centred on ~20°E/15°N rather than 0/0 so the front
 // hemisphere on load holds Europe, Africa, the Middle East and South Asia — the
@@ -132,6 +136,49 @@ function altitudeFor(geo) {
   return Math.min(Math.max(span * 180_000, 700_000), 8_000_000)
 }
 
+// Real physical altitude spans ~160 km (very low LEO) to ~36,000 km (GEO) —
+// against Earth's ~6,371 km radius, plotting it true-scale would bury LEO
+// satellites against the surface and make GEO ones a barely-distinguishable
+// speck. This is a *display-only* transform: it only changes the Cartesian3
+// height passed to the renderer, never `alt_km` itself (still shown verbatim
+// in SatelliteCard and the API response). sqrt compression keeps LEO/MEO/GEO
+// visually separated without linearly exaggerating GEO into orbit-breaking
+// distances.
+const SAT_DISPLAY_MIN_M = 150_000
+const SAT_DISPLAY_MAX_M = 3_000_000
+const SAT_DISPLAY_ALT_CEILING_KM = 42_000 // just past GEO (~35,786 km)
+
+function satelliteDisplayHeight(altKm) {
+  const t = Math.sqrt(Math.max(0, Math.min(altKm, SAT_DISPLAY_ALT_CEILING_KM)) / SAT_DISPLAY_ALT_CEILING_KM)
+  return SAT_DISPLAY_MIN_M + t * (SAT_DISPLAY_MAX_M - SAT_DISPLAY_MIN_M)
+}
+
+// One distinct, saturated colour per category — deliberately more vivid than
+// the app's muted dashboard palette (theme.js), which is tuned for text/chrome
+// rather than for telling apart small dots at a glance. Chosen so no two
+// categories share a hue family (previously two categories were both
+// gold/orange and two were both grey, which read as one blob at a glance).
+// Falls back to the "other" grey for any category not in this table (e.g. a
+// future `SATELLITE_GROUPS` addition the frontend hasn't been taught yet).
+const SATELLITE_CATEGORY_HEX = {
+  starlink: '#29d3f5', // cyan
+  gps: '#ffd23f',      // yellow
+  galileo: '#5cd65c',  // green
+  glonass: '#ff4d6d',  // red/pink
+  beidou: '#ff9f1c',   // orange
+  geo: '#b48cff',      // violet
+  other: '#9aa5b1',    // neutral grey-blue
+}
+
+const satelliteColorCache = new Map()
+function satelliteColor(category) {
+  if (!satelliteColorCache.has(category)) {
+    const hex = SATELLITE_CATEGORY_HEX[category] ?? SATELLITE_CATEGORY_HEX.other
+    satelliteColorCache.set(category, Cesium.Color.fromCssColorString(hex))
+  }
+  return satelliteColorCache.get(category)
+}
+
 // `geoByCode` supplies centroids and bounding boxes for every country the
 // basemap can draw (from /api/geo). `blockingByCode` decides which of those get
 // a marker and what colour it is — the globe no longer reads sanctions_tier, so
@@ -146,6 +193,10 @@ export default function Globe({
   onLoadError,
   layer = 'ALL',
   selectedCode = '',
+  satellites = [],
+  onSatelliteSelect,
+  selectedSatelliteId = null,
+  satelliteOrbit = null,
 }) {
   const containerRef = useRef(null)
   const viewerRef = useRef(null)
@@ -162,14 +213,21 @@ export default function Globe({
   // Static dark-slate land fill (built once from the basemap geometry); tracked
   // so it can be torn down with the viewer.
   const landRef = useRef(null)
+  // GPU-batched point cloud for satellite markers (one collection, positions
+  // updated per poll) and a polyline collection for the selected satellite's
+  // orbit path — both created once in init, alongside outlineCollection.
+  const satPointsRef = useRef(null)
+  const satOrbitRef = useRef(null)
   const [ready, setReady] = useState(false)
 
   // Keep the latest callbacks in refs so the init effect (which only runs
   // once) always calls the current prop without needing to re-run.
   const onCountrySelectRef = useRef(onCountrySelect)
   const onLoadErrorRef     = useRef(onLoadError)
+  const onSatelliteSelectRef = useRef(onSatelliteSelect)
   useEffect(() => { onCountrySelectRef.current = onCountrySelect }, [onCountrySelect])
   useEffect(() => { onLoadErrorRef.current = onLoadError }, [onLoadError])
+  useEffect(() => { onSatelliteSelectRef.current = onSatelliteSelect }, [onSatelliteSelect])
 
   // `prevSelectedRef` lets the framing effect tell a real deselect (return to
   // the whole-globe view) apart from the empty selection on first load (which
@@ -229,7 +287,13 @@ export default function Globe({
       viewer.scene.skyAtmosphere.brightnessShift = -0.5
       viewer.scene.skyAtmosphere.saturationShift = -0.7
       viewer.scene.skyAtmosphere.atmosphereLightIntensity = 5
-      viewer.scene.backgroundColor = Cesium.Color.fromCssColorString(BLACK)
+      viewer.scene.backgroundColor = Cesium.Color.fromCssColorString(SPACE_BG)
+      // Cesium's default starfield skybox — off so empty space is the flat
+      // SPACE_BG colour above, not a field of stars. Disabled here (not via
+      // the constructor's `skyBox: false`, which — in this globe config —
+      // also leaves `scene.skyAtmosphere` undefined) so the atmosphere rim
+      // configured below is unaffected.
+      viewer.scene.skyBox.show = false
       viewer.scene.sun.show  = false
       viewer.scene.moon.show = false
 
@@ -273,6 +337,19 @@ export default function Globe({
         }
       })
 
+      // Satellite markers: a single PointPrimitiveCollection (GPU-batched, one
+      // draw call regardless of count) rather than one Entity per satellite —
+      // the existing per-Entity bloom pattern above is fine for a few hundred
+      // countries, not for thousands of moving points. Populated/updated by
+      // its own effect below, reacting to the `satellites` prop.
+      satPointsRef.current = new Cesium.PointPrimitiveCollection()
+      viewer.scene.primitives.add(satPointsRef.current)
+
+      // Selected satellite's orbit path. A PolylineCollection like the border
+      // outlines above, but rebuilt per selection rather than built once.
+      satOrbitRef.current = new Cesium.PolylineCollection()
+      viewer.scene.primitives.add(satOrbitRef.current)
+
       // Markers and blooms are built by their own effects, from props — see
       // below. Init owns only what the scene needs once: the viewer, the borders
       // and the input handlers. There is deliberately no per-frame animation
@@ -288,15 +365,30 @@ export default function Globe({
       const codeFromPick = (picked) =>
         typeof picked?.id === 'string' ? picked.id : picked?.id?.properties?.code?.getValue()
 
+      // Satellite points carry their NORAD ID (a number) directly as `.id`,
+      // set when each PointPrimitive is added — same convention as the land
+      // polygons carrying a country code, just a different id type so the two
+      // pick targets can't collide.
+      const satelliteIdFromPick = (picked) => (typeof picked?.id === 'number' ? picked.id : null)
+
       handler.setInputAction(({ endPosition }) => {
-        const code = codeFromPick(viewer.scene.pick(endPosition))
-        viewer.scene.canvas.style.cursor = code ? 'pointer' : 'default'
+        const picked = viewer.scene.pick(endPosition)
+        const hit = satelliteIdFromPick(picked) != null || codeFromPick(picked)
+        viewer.scene.canvas.style.cursor = hit ? 'pointer' : 'default'
       }, Cesium.ScreenSpaceEventType.MOUSE_MOVE)
 
       // Click → report selection up. The camera fly-to lives in the selection-
       // framing effect so click and dropdown share one framing path.
       handler.setInputAction(({ position }) => {
-        const code = codeFromPick(viewer.scene.pick(position))
+        const picked = viewer.scene.pick(position)
+
+        const noradId = satelliteIdFromPick(picked)
+        if (noradId != null) {
+          onSatelliteSelectRef.current?.(noradId)
+          return
+        }
+
+        const code = codeFromPick(picked)
         if (!code) return
         onCountrySelectRef.current?.(code)
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK)
@@ -540,6 +632,63 @@ export default function Globe({
     viewer.scene.primitives.add(primitive)
     choroplethRef.current = primitive
   }, [ready, indexByCode, geoByCode, showIndex])
+
+  // Satellite markers, rebuilt on every poll (App.jsx re-fetches every 5-10s —
+  // this is what keeps them visibly moving instead of frozen at first load).
+  // Full clear-and-readd rather than incremental per-point diffing: simpler,
+  // and cheap enough at v1 object counts; worth revisiting if profiling at the
+  // high end of the tracked-object-count target shows it as a bottleneck.
+  useEffect(() => {
+    if (!ready) return
+    const viewer = viewerRef.current
+    if (!viewer || viewer.isDestroyed()) return
+    const points = satPointsRef.current
+    if (!points) return
+
+    points.removeAll()
+    for (const sat of satellites) {
+      if (sat.lat == null || sat.lon == null) continue
+      const selected = sat.norad_id === selectedSatelliteId
+      points.add({
+        id: sat.norad_id,
+        position: Cesium.Cartesian3.fromDegrees(sat.lon, sat.lat, satelliteDisplayHeight(sat.alt_km)),
+        pixelSize: selected ? 7 : sat.category === 'starlink' ? 3 : 5,
+        color: satelliteColor(sat.category),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: selected ? 2 : 0,
+      })
+    }
+  }, [ready, satellites, selectedSatelliteId])
+
+  // Selected satellite's orbit path: one full period, pre-split at the
+  // antimeridian by the backend so each segment can be drawn as its own
+  // polyline without a spurious wraparound line.
+  useEffect(() => {
+    if (!ready) return
+    const viewer = viewerRef.current
+    if (!viewer || viewer.isDestroyed()) return
+    const collection = satOrbitRef.current
+    if (!collection) return
+
+    collection.removeAll()
+    if (!satelliteOrbit) return
+
+    // Plain white, not a per-category colour: the same track colour regardless
+    // of which category is selected reads clearly as "this is the selection",
+    // and stays legible against every category colour above.
+    const orbitColor = Cesium.Color.WHITE.withAlpha(0.9)
+    for (const segment of satelliteOrbit.segments) {
+      if (segment.length < 2) continue
+      const positions = segment.map((p) =>
+        Cesium.Cartesian3.fromDegrees(p.lon, p.lat, satelliteDisplayHeight(p.alt_km)),
+      )
+      collection.add({
+        positions,
+        width: 1.5,
+        material: Cesium.Material.fromType('Color', { color: orbitColor }),
+      })
+    }
+  }, [ready, satelliteOrbit])
 
   // Reactive camera framing: the globe follows the app-wide selection, whatever
   // set it — a marker click here or the country dropdown in the header. A
