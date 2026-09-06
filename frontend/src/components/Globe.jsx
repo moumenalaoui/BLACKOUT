@@ -186,6 +186,7 @@ export default function Globe({
   satellites = [],
   onSatelliteSelect,
   selectedSatelliteId = null,
+  selectedSatelliteCategory = null,
   satelliteOrbit = null,
   cables = null,
   showCables = false,
@@ -677,6 +678,14 @@ export default function Globe({
   // Selected satellite's orbit path: one full period, pre-split at the
   // antimeridian by the backend so each segment can be drawn as its own
   // polyline without a spurious wraparound line.
+  //
+  // Skipped for 'geo' category satellites: a circular LEO/MEO orbit draws as
+  // one clean loop, but geosynchronous-family orbits (true GEO, plus inclined
+  // ones like QZS) sample to a tight analemma/figure-8 near the satellite's
+  // fixed longitude that reads as a confusing tangle rather than a path,
+  // especially with the antimeridian-split logic never triggering to break it
+  // up (its longitude barely moves). The period/alt/lat/lon in SatelliteCard
+  // stay accurate either way — only this line is skipped.
   useEffect(() => {
     if (!ready) return
     const viewer = viewerRef.current
@@ -685,7 +694,7 @@ export default function Globe({
     if (!collection) return
 
     collection.removeAll()
-    if (!satelliteOrbit) return
+    if (!satelliteOrbit || selectedSatelliteCategory === 'geo') return
 
     // Plain white, not a per-category colour: the same track colour regardless
     // of which category is selected reads clearly as "this is the selection",
@@ -702,7 +711,7 @@ export default function Globe({
         material: Cesium.Material.fromType('Color', { color: orbitColor }),
       })
     }
-  }, [ready, satelliteOrbit])
+  }, [ready, satelliteOrbit, selectedSatelliteCategory])
 
   // Submarine cable geometry: built exactly once, the first time `cables`
   // arrives with data, guarded by `cablesBuiltRef` since this is static
