@@ -1,6 +1,11 @@
 use crate::models::{
-    country::Country, country_reference::CountryReference, deployment::Status,
-    model_release::ModelRelease, signal::AdoptionSignal,
+    cable::{CableLandingPoint, CableRoute},
+    country::Country,
+    country_reference::CountryReference,
+    deployment::Status,
+    model_release::ModelRelease,
+    signal::AdoptionSignal,
+    starlink_status::StarlinkStatus,
 };
 use anyhow::{Context, Result};
 use rusqlite::Connection;
@@ -37,6 +42,9 @@ pub fn load_all(conn: &Connection) -> Result<()> {
     conn.execute_batch("BEGIN;")?;
     let result = (|| {
         load_country_reference(conn)?;
+        load_starlink_status(conn)?;
+        load_cable_routes(conn)?;
+        load_cable_landing_points(conn)?;
         load_countries(conn)?;
         load_models(conn)?;
         load_signals(conn)?;
@@ -87,6 +95,65 @@ fn load_country_reference(conn: &Connection) -> Result<()> {
                 r.include_on_globe as i64,
                 r.priority_tier,
             ],
+        )?;
+    }
+    Ok(())
+}
+
+/// Hand-curated, not generated — `INSERT OR REPLACE` so re-editing this file
+/// and restarting actually takes effect, matching `country_reference`'s
+/// rationale (this data has no separate hand-vs-generated split to protect;
+/// the whole file *is* the hand edits).
+fn load_starlink_status(conn: &Connection) -> Result<()> {
+    let rows: Vec<StarlinkStatus> = read_seed("starlink_status.json")?;
+    for r in rows {
+        conn.execute(
+            "INSERT OR REPLACE INTO starlink_status VALUES (?1,?2,?3,?4,?5,?6)",
+            rusqlite::params![
+                r.country_code,
+                serde_json::to_string(&r.status)?
+                    .trim_matches('"')
+                    .to_string(),
+                r.confidence,
+                r.note,
+                r.source_note,
+                r.last_reviewed,
+            ],
+        )?;
+    }
+    Ok(())
+}
+
+/// Generated (by scripts/gen_cable_data.mjs), like country_reference —
+/// `INSERT OR REPLACE` so re-running the generator and restarting actually
+/// takes effect. `segments` is serialized to JSON text for the `geometry`
+/// column; read back and deserialized in db/cables.rs.
+fn load_cable_routes(conn: &Connection) -> Result<()> {
+    let rows: Vec<CableRoute> = read_seed("cable_routes.json")?;
+    for r in rows {
+        conn.execute(
+            "INSERT OR REPLACE INTO cable_routes VALUES (?1,?2,?3,?4,?5)",
+            rusqlite::params![
+                r.id,
+                r.feature_id,
+                r.name,
+                r.color,
+                serde_json::to_string(&r.segments)?,
+            ],
+        )?;
+    }
+    Ok(())
+}
+
+/// Generated (by scripts/gen_cable_data.mjs), like country_reference —
+/// `INSERT OR REPLACE` so re-running the generator and restarting actually
+/// takes effect.
+fn load_cable_landing_points(conn: &Connection) -> Result<()> {
+    let rows: Vec<CableLandingPoint> = read_seed("cable_landing_points.json")?;
+    for r in rows {
+        conn.execute(
+            "INSERT OR REPLACE INTO cable_landing_points VALUES (?1,?2,?3,?4,?5,?6)",
+            rusqlite::params![r.id, r.name, r.country_code, r.is_tbd as i64, r.lon, r.lat],
         )?;
     }
     Ok(())
