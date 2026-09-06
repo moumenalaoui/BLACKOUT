@@ -72,12 +72,12 @@ pub fn load_all(conn: &Connection) -> Result<()> {
     }
 }
 
-/// Loads the world country list. `INSERT OR REPLACE` rather than
-/// `OR IGNORE` (used everywhere else here): this is generated reference data
-/// with no hand edits to preserve, so a regenerated file should actually take
-/// effect instead of being silently ignored on an existing database.
+/// Loads the world country list. This table is generated reference data with no
+/// hand edits to preserve, so it is replaced wholesale: rows removed from the
+/// seed file must disappear from SQLite too, not linger forever as stale codes.
 fn load_country_reference(conn: &Connection) -> Result<()> {
     let rows: Vec<CountryReference> = read_seed("country_reference.json")?;
+    conn.execute("DELETE FROM country_reference", [])?;
     for r in rows {
         conn.execute(
             "INSERT OR REPLACE INTO country_reference VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)",

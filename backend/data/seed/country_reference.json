@@ -1040,22 +1040,6 @@
     "priority_tier": 100
   },
   {
-    "country_code": "EH",
-    "country_name": "W. Sahara",
-    "alpha3": "ESH",
-    "iso_numeric": "732",
-    "region": "Africa",
-    "subregion": "Northern Africa",
-    "centroid_lat": 24.23,
-    "centroid_lon": -12.22,
-    "bbox_min_lon": -17.1,
-    "bbox_min_lat": 20.81,
-    "bbox_max_lon": -8.68,
-    "bbox_max_lat": 27.66,
-    "include_on_globe": 1,
-    "priority_tier": 100
-  },
-  {
     "country_code": "ER",
     "country_name": "Eritrea",
     "alpha3": "ERI",
