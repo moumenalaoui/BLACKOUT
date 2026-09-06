@@ -104,11 +104,14 @@ pub fn known_codes(conn: &Connection) -> Result<std::collections::HashSet<String
 /// back to the codes the rest of the app uses. Rows with no alpha3 are
 /// skipped rather than mapped to an empty key.
 pub fn alpha3_to_code(conn: &Connection) -> Result<std::collections::HashMap<String, String>> {
-    let mut stmt =
-        conn.prepare("SELECT alpha3, country_code FROM country_reference WHERE alpha3 IS NOT NULL")?;
+    let mut stmt = conn
+        .prepare("SELECT alpha3, country_code FROM country_reference WHERE alpha3 IS NOT NULL")?;
     let rows = stmt
         .query_map([], |r| {
-            Ok((r.get::<_, String>(0)?.to_uppercase(), r.get::<_, String>(1)?))
+            Ok((
+                r.get::<_, String>(0)?.to_uppercase(),
+                r.get::<_, String>(1)?,
+            ))
         })?
         .collect::<rusqlite::Result<std::collections::HashMap<_, _>>>()?;
     Ok(rows)

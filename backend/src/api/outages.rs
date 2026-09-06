@@ -60,7 +60,10 @@ pub async fn list_outages(
     let query = if clauses.is_empty() {
         format!("{SELECT} ORDER BY start_ts DESC")
     } else {
-        format!("{SELECT} WHERE {} ORDER BY start_ts DESC", clauses.join(" AND "))
+        format!(
+            "{SELECT} WHERE {} ORDER BY start_ts DESC",
+            clauses.join(" AND ")
+        )
     };
 
     let mut stmt = conn

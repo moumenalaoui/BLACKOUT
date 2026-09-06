@@ -310,8 +310,14 @@ async fn fetch_source(
 
     let mut stored = 0usize;
     for (country_code, (year, raw)) in &latest {
-        if let Err(e) = insert_score(state, source, country_code, *year, *raw, dsp.get(country_code))
-        {
+        if let Err(e) = insert_score(
+            state,
+            source,
+            country_code,
+            *year,
+            *raw,
+            dsp.get(country_code),
+        ) {
             eprintln!(
                 "indices: failed to store {} for {country_code}: {e}",
                 source.db_name()
@@ -320,10 +326,7 @@ async fn fetch_source(
             stored += 1;
         }
     }
-    println!(
-        "indices: stored {stored} {} scores",
-        source.db_name()
-    );
+    println!("indices: stored {stored} {} scores", source.db_name());
     Ok(())
 }
 

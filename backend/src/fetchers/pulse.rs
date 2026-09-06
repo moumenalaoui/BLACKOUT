@@ -166,10 +166,7 @@ fn scale(raw: f64) -> f64 {
     (v * 10.0).round() / 10.0
 }
 
-async fn fetch_resilience(
-    client: &reqwest::Client,
-    token: &str,
-) -> Result<Vec<ResilienceRow>> {
+async fn fetch_resilience(client: &reqwest::Client, token: &str) -> Result<Vec<ResilienceRow>> {
     let body = client
         .get(RESILIENCE_ENDPOINT)
         .bearer_auth(token)
