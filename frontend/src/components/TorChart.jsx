@@ -137,7 +137,10 @@ export default function TorChart({ countryCode }) {
   const transportRow = latestWithTransports(rows)
 
   return (
-    <div style={{ width: '100%' }}>
+    <section style={{ width: '100%' }}>
+      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: MUTED, marginBottom: 8 }}>
+        TOR RELAY / BRIDGE USERS
+      </div>
       <div style={{ width: '100%', height: 180 }}>
         <ResponsiveContainer width="100%" height="100%">
           {/* top was 18 to clear the reference-line date labels; with those gone
@@ -252,7 +255,7 @@ export default function TorChart({ countryCode }) {
           })}
         </div>
       )}
-    </div>
+    </section>
   )
 }
 
