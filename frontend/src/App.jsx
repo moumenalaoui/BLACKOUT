@@ -4,12 +4,38 @@ import CountrySidebar from './components/CountrySidebar'
 import OutageFeed from './components/OutageFeed'
 import GlobalRanking from './components/GlobalRanking'
 import IndexLegend from './components/IndexLegend'
+import SatelliteLegend, { SATELLITE_CATEGORIES } from './components/SatelliteLegend'
+import SatelliteCard from './components/SatelliteCard'
 import CommandBar from './components/CommandBar'
 import StatusBar from './components/StatusBar'
 import { buildBlockingMap } from './lib/blockingRegistry'
-import { getBlocking, getCensorshipIndex, getCountries, getCountry, getGeo, getOutages } from './lib/api'
+import {
+  getBlocking,
+  getCensorshipIndex,
+  getCountries,
+  getCountry,
+  getGeo,
+  getOutages,
+  getSatellites,
+  getSatelliteOrbit,
+} from './lib/api'
 import { BASE, BORDER, MONO, MUTED, SIDEBAR } from './theme'
 import './App.css'
+
+// Every category except the generic "active" catch-all ("other") is on by
+// default: Starlink is the headline feature, the GNSS constellations and GEO
+// are small/cheap, and "other" is by far the largest, least-differentiated
+// bucket — off by default keeps the first load lighter, one checkbox away.
+const DEFAULT_SATELLITE_CATEGORIES = Object.fromEntries(
+  SATELLITE_CATEGORIES.map(({ key }) => [key, key !== 'other']),
+)
+
+// How often the client re-fetches satellite positions. The backend computes
+// them fresh on every request (no server-side position cache), so this
+// interval alone is what keeps satellites visibly moving — the fix for the
+// bug where a comparable reference implementation (OSIRIS) fetched positions
+// once per session and never re-polled.
+const SATELLITE_POLL_MS = 7000
 
 export default function App() {
   // `countries` and `blocking` are owned here and passed down, rather than
@@ -35,6 +61,13 @@ export default function App() {
   // plus its on/off toggle (default on).
   const [indexByCode, setIndexByCode] = useState({})
   const [showIndex, setShowIndex] = useState(true)
+  // Satellite tracking layer: live-polled positions, its own layer toggle and
+  // per-category filters, and the currently-selected satellite's orbit path.
+  const [satellites, setSatellites] = useState([])
+  const [showSatellites, setShowSatellites] = useState(true)
+  const [satelliteCategoryFilters, setSatelliteCategoryFilters] = useState(DEFAULT_SATELLITE_CATEGORIES)
+  const [selectedSatelliteId, setSelectedSatelliteId] = useState(null)
+  const [satelliteOrbit, setSatelliteOrbit] = useState(null)
   // Freshness of the DATA, not of the last network call. This used to be
   // `Date.now()` stamped whenever a fetch returned, which meant the status bar
   // read "3s ago" over a database that had not been refreshed in weeks — the
@@ -208,6 +241,62 @@ export default function App() {
     }
   }, [])
 
+  // Satellite positions. Unlike every other data effect above, this one polls
+  // — the backend computes positions fresh per request rather than caching
+  // them, so a one-shot fetch would freeze satellites at load time exactly
+  // like the reference implementation this feature was built to improve on.
+  // Skips the fetch entirely (and clears the layer) when the master toggle is
+  // off or every category is unchecked, so a hidden layer costs nothing.
+  useEffect(() => {
+    const activeCategories = Object.entries(satelliteCategoryFilters)
+      .filter(([, on]) => on)
+      .map(([key]) => key)
+
+    if (!showSatellites || activeCategories.length === 0) {
+      setSatellites([])
+      return
+    }
+
+    let cancelled = false
+    async function poll() {
+      try {
+        const data = await getSatellites(activeCategories)
+        if (!cancelled) setSatellites(data.satellites)
+      } catch {
+        if (!cancelled) setSatellites([])
+      }
+    }
+
+    poll()
+    const id = setInterval(poll, SATELLITE_POLL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [showSatellites, satelliteCategoryFilters])
+
+  // Selected satellite's orbit path. Independent of the position poll above —
+  // fetched once per selection, not on every poll tick.
+  useEffect(() => {
+    if (!selectedSatelliteId) {
+      setSatelliteOrbit(null)
+      return
+    }
+
+    let cancelled = false
+    getSatelliteOrbit(selectedSatelliteId)
+      .then((data) => {
+        if (!cancelled) setSatelliteOrbit(data)
+      })
+      .catch(() => {
+        if (!cancelled) setSatelliteOrbit(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [selectedSatelliteId])
+
   // No auto-selection on load — the globe's default state is intentionally
   // sparse (outlines + pulsing markers) until the user picks a country via
   // the globe or the dropdown.
@@ -269,6 +358,13 @@ export default function App() {
   // loading state rather than flashing the stub first.
   const sidebarCountry = selectedCountry || (!isLoadingSelection ? geoByCode[selectedCode] : null)
 
+  // Refreshes with every poll for free, since it's just a lookup into the
+  // already-live `satellites` state rather than a fetch of its own.
+  const selectedSatellite = useMemo(
+    () => satellites.find((s) => s.norad_id === selectedSatelliteId) ?? null,
+    [satellites, selectedSatelliteId],
+  )
+
   return (
     <div style={{ background: BASE, height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <CommandBar
@@ -290,6 +386,10 @@ export default function App() {
             onLoadError={setGlobeError}
             layer={layer}
             selectedCode={selectedCode}
+            satellites={satellites}
+            onSatelliteSelect={setSelectedSatelliteId}
+            selectedSatelliteId={selectedSatelliteId}
+            satelliteOrbit={satelliteOrbit}
           />
 
           {/* Vignette: darkens the globe-area corners to focus the eye and add
@@ -310,6 +410,22 @@ export default function App() {
           <GlobalRanking />
 
           <IndexLegend show={showIndex} onToggle={() => setShowIndex((v) => !v)} />
+
+          <SatelliteLegend
+            show={showSatellites}
+            onToggleShow={() => setShowSatellites((v) => !v)}
+            categoryFilters={satelliteCategoryFilters}
+            onToggleCategory={(key) =>
+              setSatelliteCategoryFilters((prev) => ({ ...prev, [key]: !prev[key] }))
+            }
+            count={satellites.length}
+          />
+
+          <SatelliteCard
+            satellite={selectedSatellite}
+            periodMinutes={satelliteOrbit?.period_minutes}
+            onClose={() => setSelectedSatelliteId(null)}
+          />
 
           {statusMessage && (
             <div
