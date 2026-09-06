@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use std::collections::HashMap;
 
 /// One satellite's position, propagated fresh to `SatellitesResponse::generated_at`.
 #[derive(Debug, Clone, Serialize)]
@@ -19,6 +20,13 @@ pub struct SatellitesResponse {
     /// When the orbital-element catalog itself was last successfully
     /// refreshed from CelesTrak. `None` before the first successful fetch.
     pub catalog_updated_at: Option<DateTime<Utc>>,
+    /// Total objects in the catalog, independent of `categories` filtering —
+    /// lets the frontend show a live "All Satellites" count.
+    pub total: usize,
+    /// Object count per category, likewise independent of `categories`
+    /// filtering, so every legend row can show a live count regardless of
+    /// which one is currently selected/fetched.
+    pub category_counts: HashMap<String, usize>,
     pub satellites: Vec<SatellitePosition>,
 }
 

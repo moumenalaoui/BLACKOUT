@@ -29,16 +29,29 @@ const MIN_CATALOG_REFRESH_SECS: u64 = 60;
 /// assigned to any object first seen there. Order is precedence: earlier
 /// entries win when the same NORAD ID appears in more than one group (e.g. a
 /// Starlink satellite that also shows up in the generic `active` sweep).
-/// Overridable via `SATELLITE_GROUPS` (`group:category,group:category,...`)
-/// so the wider category wishlist (OneWeb/Iridium, weather, military, debris,
-/// ...) can be added later purely through configuration once the exact
-/// CelesTrak group names for them are confirmed.
+/// `gps-ops`/`galileo`/`glo-ops`/`beidou` share one `navigation` tag (the four
+/// GNSS constellations don't overlap in practice, so first-match-wins never
+/// actually arbitrates between them) and `stations`/`science` share one
+/// `stations` tag (space stations plus telescope/science craft — CelesTrak
+/// has no combined group for that pairing, so this is two group fetches
+/// feeding one category). `military`/`resource` are CelesTrak's real, public
+/// "Miscellaneous Military" (~27 objects — most military/intel satellites
+/// simply have no public elements at all) and "Earth Resources" (~181
+/// objects) groups; both are honest counts, not padded to match any external
+/// reference. Overridable via `SATELLITE_GROUPS`
+/// (`group:category,group:category,...`) so the wider wishlist (OneWeb/
+/// Iridium, weather, debris, ...) can be added later purely through
+/// configuration.
 const DEFAULT_GROUPS: &[(&str, &str)] = &[
     ("starlink", "starlink"),
-    ("gps-ops", "gps"),
-    ("galileo", "galileo"),
-    ("glo-ops", "glonass"),
-    ("beidou", "beidou"),
+    ("gps-ops", "navigation"),
+    ("galileo", "navigation"),
+    ("glo-ops", "navigation"),
+    ("beidou", "navigation"),
+    ("military", "military"),
+    ("resource", "earthobs"),
+    ("stations", "stations"),
+    ("science", "stations"),
     ("geo", "geo"),
     ("active", "other"),
 ];

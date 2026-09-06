@@ -19,10 +19,24 @@ use axum::{
 };
 use chrono::Utc;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 /// Number of points sampled across one full orbital period for an orbit path.
 /// 180 gives a visually smooth curve without an oversized response.
 const ORBIT_SAMPLES: usize = 180;
+
+/// Tally of objects per category, independent of any `categories` filter —
+/// computed over the *whole* catalog so every legend row (including ones not
+/// currently selected/fetched) can show a live count. Pure and cheap (no
+/// propagation), so it's recomputed on every request alongside the filtered
+/// position list at negligible cost.
+fn tally_categories<'a>(categories: impl Iterator<Item = &'a str>) -> HashMap<String, usize> {
+    let mut counts = HashMap::new();
+    for category in categories {
+        *counts.entry(category.to_string()).or_insert(0) += 1;
+    }
+    counts
+}
 
 #[derive(Deserialize)]
 pub struct SatellitesQuery {
@@ -74,9 +88,14 @@ pub async fn list_satellites(
         }
     }
 
+    let total = guard.objects.len();
+    let category_counts = tally_categories(guard.objects.iter().map(|s| s.category.as_str()));
+
     Ok(Json(SatellitesResponse {
         generated_at: now,
         catalog_updated_at: guard.catalog_updated_at,
+        total,
+        category_counts,
         satellites,
     }))
 }
@@ -122,4 +141,26 @@ pub async fn satellite_orbit(
         generated_at: now,
         segments,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tally_categories_counts_each_category_independently() {
+        let categories = vec!["starlink", "starlink", "navigation", "military", "starlink"];
+        let counts = tally_categories(categories.into_iter());
+
+        assert_eq!(counts.get("starlink"), Some(&3));
+        assert_eq!(counts.get("navigation"), Some(&1));
+        assert_eq!(counts.get("military"), Some(&1));
+        assert_eq!(counts.get("earthobs"), None);
+        assert_eq!(counts.values().sum::<usize>(), 5);
+    }
+
+    #[test]
+    fn tally_categories_of_empty_input_is_empty() {
+        assert!(tally_categories(std::iter::empty()).is_empty());
+    }
 }
