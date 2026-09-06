@@ -483,6 +483,7 @@ export default function App() {
             satellites={satellites}
             onSatelliteSelect={setSelectedSatelliteId}
             selectedSatelliteId={selectedSatelliteId}
+            selectedSatelliteCategory={selectedSatellite?.category ?? null}
             satelliteOrbit={satelliteOrbit}
             cables={cables}
             showCables={showCables}
