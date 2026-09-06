@@ -4,7 +4,7 @@ import CountrySidebar from './components/CountrySidebar'
 import OutageFeed from './components/OutageFeed'
 import GlobalRanking from './components/GlobalRanking'
 import IndexLegend from './components/IndexLegend'
-import SatelliteLegend, { SATELLITE_CATEGORIES } from './components/SatelliteLegend'
+import SatelliteLegend from './components/SatelliteLegend'
 import SatelliteCard from './components/SatelliteCard'
 import CommandBar from './components/CommandBar'
 import StatusBar from './components/StatusBar'
@@ -21,14 +21,6 @@ import {
 } from './lib/api'
 import { BASE, BORDER, MONO, MUTED, SIDEBAR } from './theme'
 import './App.css'
-
-// Every category except the generic "active" catch-all ("other") is on by
-// default: Starlink is the headline feature, the GNSS constellations and GEO
-// are small/cheap, and "other" is by far the largest, least-differentiated
-// bucket — off by default keeps the first load lighter, one checkbox away.
-const DEFAULT_SATELLITE_CATEGORIES = Object.fromEntries(
-  SATELLITE_CATEGORIES.map(({ key }) => [key, key !== 'other']),
-)
 
 // How often the client re-fetches satellite positions. The backend computes
 // them fresh on every request (no server-side position cache), so this
@@ -61,11 +53,14 @@ export default function App() {
   // plus its on/off toggle (default on).
   const [indexByCode, setIndexByCode] = useState({})
   const [showIndex, setShowIndex] = useState(true)
-  // Satellite tracking layer: live-polled positions, its own layer toggle and
-  // per-category filters, and the currently-selected satellite's orbit path.
+  // Satellite tracking layer: live-polled positions, a single-select "space
+  // tracking" choice ('none' | 'all' | a category key — see SatelliteLegend's
+  // SPACE_TRACKING_OPTIONS), live per-category counts, and the currently-
+  // selected satellite's orbit path. Defaults to 'all' so the layer shows
+  // everything tracked on first load.
   const [satellites, setSatellites] = useState([])
-  const [showSatellites, setShowSatellites] = useState(true)
-  const [satelliteCategoryFilters, setSatelliteCategoryFilters] = useState(DEFAULT_SATELLITE_CATEGORIES)
+  const [spaceTrackingSelection, setSpaceTrackingSelection] = useState('all')
+  const [spaceTrackingCounts, setSpaceTrackingCounts] = useState({})
   const [selectedSatelliteId, setSelectedSatelliteId] = useState(null)
   const [satelliteOrbit, setSatelliteOrbit] = useState(null)
   // Freshness of the DATA, not of the last network call. This used to be
@@ -245,23 +240,25 @@ export default function App() {
   // — the backend computes positions fresh per request rather than caching
   // them, so a one-shot fetch would freeze satellites at load time exactly
   // like the reference implementation this feature was built to improve on.
-  // Skips the fetch entirely (and clears the layer) when the master toggle is
-  // off or every category is unchecked, so a hidden layer costs nothing.
+  // Skips the fetch entirely (and clears the rendered layer) when "NONE" is
+  // selected, so a hidden layer costs nothing — but leaves
+  // `spaceTrackingCounts` alone so the legend's per-row counts stay visible
+  // rather than flickering to zero while hidden.
   useEffect(() => {
-    const activeCategories = Object.entries(satelliteCategoryFilters)
-      .filter(([, on]) => on)
-      .map(([key]) => key)
-
-    if (!showSatellites || activeCategories.length === 0) {
+    if (spaceTrackingSelection === 'none') {
       setSatellites([])
       return
     }
 
+    const category = spaceTrackingSelection === 'all' ? null : spaceTrackingSelection
     let cancelled = false
     async function poll() {
       try {
-        const data = await getSatellites(activeCategories)
-        if (!cancelled) setSatellites(data.satellites)
+        const data = await getSatellites(category)
+        if (!cancelled) {
+          setSatellites(data.satellites)
+          setSpaceTrackingCounts({ total: data.total, ...data.category_counts })
+        }
       } catch {
         if (!cancelled) setSatellites([])
       }
@@ -273,7 +270,7 @@ export default function App() {
       cancelled = true
       clearInterval(id)
     }
-  }, [showSatellites, satelliteCategoryFilters])
+  }, [spaceTrackingSelection])
 
   // Selected satellite's orbit path. Independent of the position poll above —
   // fetched once per selection, not on every poll tick.
@@ -431,13 +428,9 @@ export default function App() {
           <IndexLegend show={showIndex} onToggle={() => setShowIndex((v) => !v)} />
 
           <SatelliteLegend
-            show={showSatellites}
-            onToggleShow={() => setShowSatellites((v) => !v)}
-            categoryFilters={satelliteCategoryFilters}
-            onToggleCategory={(key) =>
-              setSatelliteCategoryFilters((prev) => ({ ...prev, [key]: !prev[key] }))
-            }
-            count={satellites.length}
+            selection={spaceTrackingSelection}
+            onSelect={setSpaceTrackingSelection}
+            counts={spaceTrackingCounts}
           />
 
           <SatelliteCard
