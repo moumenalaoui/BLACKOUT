@@ -1,4 +1,4 @@
-import { BORDER, HIGHLIGHT, MONO, MUTED, SIDEBAR, WHITE } from '../theme'
+import { BORDER, BORDER_STRONG, HIGHLIGHT, MONO, MUTED, RAISED, SIDEBAR, WHITE } from '../theme'
 
 // Static/decorative infrastructure context, not a censorship signal — a
 // single binary toggle (unlike SatelliteLegend's multi-select), default off
@@ -13,15 +13,11 @@ import { BORDER, HIGHLIGHT, MONO, MUTED, SIDEBAR, WHITE } from '../theme'
 export default function CableLegend({ show, onToggle, routeCount, landingCount }) {
   return (
     <div
-      // The route/landing-point count + attribution used to sit inline as a
-      // caption. Same info is still here, just on hover, so the panel is
-      // only as wide as its label + toggle — the same footprint as every
-      // other compact legend (IndexLegend, SatelliteLegend).
       title={`${routeCount} cables · ${landingCount} landing points · via TeleGeography`}
       style={{
         background: SIDEBAR,
         border: `1px solid ${BORDER}`,
-        padding: '7px 10px',
+        padding: '4px 10px',
         display: 'flex',
         alignItems: 'center',
         gap: 10,
@@ -29,22 +25,29 @@ export default function CableLegend({ show, onToggle, routeCount, landingCount }
         whiteSpace: 'nowrap',
       }}
     >
-      <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: WHITE }}>
-        SUBMARINE CABLES
-      </span>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+        <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.09em', color: WHITE }}>
+          SUBMARINE CABLES
+        </span>
+        <span style={{ fontFamily: MONO, fontSize: 7, letterSpacing: '0.03em', color: MUTED }}>
+          {routeCount} routes · {landingCount} landings
+        </span>
+      </div>
 
       <button
         type="button"
         onClick={onToggle}
         aria-pressed={show}
         style={{
-          background: 'transparent',
-          border: `1px solid ${show ? HIGHLIGHT : BORDER}`,
-          color: show ? HIGHLIGHT : MUTED,
+          background: show ? 'rgba(214, 179, 106, 0.08)' : RAISED,
+          border: `1px solid ${show ? HIGHLIGHT : BORDER_STRONG}`,
+          color: show ? HIGHLIGHT : WHITE,
           fontFamily: MONO,
-          fontSize: 9,
+          fontSize: 8,
           letterSpacing: '0.08em',
-          padding: '2px 8px',
+          padding: '4px 10px',
+          minWidth: 52,
+          marginLeft: 4,
           cursor: 'pointer',
         }}
       >
