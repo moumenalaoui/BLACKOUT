@@ -21,8 +21,11 @@ export default function SatelliteCard({ satellite, periodMinutes, onClose }) {
     <div
       style={{
         position: 'absolute',
-        top: 84,
-        left: 292, // below+aligned with SatelliteLegend, clear of GlobalRanking
+        top: 12,
+        // Beside SatelliteLegend (left:292, width:196), not on top of it — this
+        // used to sit at top:84/left:292, directly overlapping the middle of
+        // the legend's row list instead of the empty globe.
+        left: 500,
         background: SIDEBAR,
         border: `1px solid ${BORDER}`,
         padding: '10px 12px',
