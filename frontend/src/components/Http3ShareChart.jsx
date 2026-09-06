@@ -1,0 +1,171 @@
+import { useEffect, useState } from 'react'
+import {
+  ComposedChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts'
+import { BORDER, CYAN, DIM, MONO, MUTED, SIDEBAR, US_EXPOSURE, WHITE } from '../theme'
+
+// Same thinning approach as TorChart.jsx: one tick per month, capped so
+// labels don't collide in a 380px sidebar.
+const MAX_TICKS = 6
+
+function monthlyTicks(rows) {
+  const seen = new Set()
+  const months = []
+  for (const row of rows) {
+    const month = row.date.slice(0, 7)
+    if (!seen.has(month)) {
+      seen.add(month)
+      months.push(row.date)
+    }
+  }
+  if (months.length <= MAX_TICKS) return months
+
+  const stride = Math.ceil(months.length / MAX_TICKS)
+  const ticks = months.filter((_, i) => i % stride === 0)
+  const last = months[months.length - 1]
+  if (ticks[ticks.length - 1] !== last) {
+    if (ticks.length >= MAX_TICKS) ticks.pop()
+    ticks.push(last)
+  }
+  return ticks
+}
+
+// HTTP/1.x vs HTTP/2 vs HTTP/3 (QUIC) daily traffic share for a country, from
+// Cloudflare Radar. A leading indicator distinct from an outage: a government
+// can block QUIC — and the circumvention tools that tunnel over it — while
+// the network itself keeps running, well before (or without) any
+// connectivity blackout. Deliberately not labeled a "filtering" or "blocking"
+// chart: this is a raw share measurement, not a classification.
+export default function Http3ShareChart({ countryCode }) {
+  const [rows, setRows] = useState(null)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setRows(null)
+    setError(false)
+
+    fetch(`/api/http-protocol-share?country=${countryCode}`)
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to fetch HTTP protocol share')
+        return r.json()
+      })
+      .then((data) => {
+        if (!cancelled) setRows(data)
+      })
+      .catch(() => {
+        if (!cancelled) setError(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [countryCode])
+
+  if (error || !rows || rows.length === 0) return null
+
+  const chartData = rows.map((row) => ({
+    date: row.date,
+    http1: row.http1_pct ?? 0,
+    http2: row.http2_pct ?? 0,
+    http3: row.http3_pct ?? 0,
+  }))
+  const ticks = monthlyTicks(rows)
+  const latest = rows[rows.length - 1]
+
+  return (
+    <section>
+      <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: MUTED, marginBottom: 8 }}>
+        HTTP/3 (QUIC) TRAFFIC SHARE
+      </div>
+      <div style={{ width: '100%', height: 140 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <ComposedChart data={chartData} margin={{ top: 6, right: 4, bottom: 0, left: 0 }}>
+            <CartesianGrid stroke={BORDER} vertical={false} />
+            <XAxis
+              dataKey="date"
+              ticks={ticks}
+              tickFormatter={(d) => d.slice(0, 7)}
+              tick={{ fill: MUTED, fontSize: 9, fontFamily: MONO }}
+              axisLine={{ stroke: BORDER }}
+              tickLine={false}
+            />
+            <YAxis
+              domain={[0, 100]}
+              tick={{ fill: MUTED, fontSize: 9, fontFamily: MONO }}
+              axisLine={{ stroke: BORDER }}
+              tickLine={false}
+              width={32}
+              unit="%"
+            />
+            <Tooltip
+              contentStyle={{ background: SIDEBAR, border: `1px solid ${BORDER}`, borderRadius: 0, fontSize: 11, fontFamily: MONO }}
+              labelStyle={{ color: WHITE }}
+              itemStyle={{ color: MUTED }}
+              formatter={(value) => `${value.toFixed(2)}%`}
+            />
+            {/* Stacked bottom-to-top: HTTP/1.x (most muted, legacy) below
+                HTTP/2 (neutral baseline) below HTTP/3 (the signal of
+                interest, drawn in the app's HUD/live-signal accent colour so
+                a collapse in its band is the thing the eye catches). */}
+            <Area
+              type="monotone"
+              dataKey="http1"
+              name="HTTP/1.x"
+              stackId="share"
+              fill={DIM}
+              fillOpacity={0.5}
+              stroke={DIM}
+              strokeWidth={1}
+            />
+            <Area
+              type="monotone"
+              dataKey="http2"
+              name="HTTP/2"
+              stackId="share"
+              fill={US_EXPOSURE}
+              fillOpacity={0.35}
+              stroke={US_EXPOSURE}
+              strokeWidth={1}
+            />
+            <Area
+              type="monotone"
+              dataKey="http3"
+              name="HTTP/3 (QUIC)"
+              stackId="share"
+              fill={CYAN}
+              fillOpacity={0.5}
+              stroke={CYAN}
+              strokeWidth={1.5}
+            />
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ display: 'flex', gap: 16, marginTop: 4, fontFamily: MONO, fontSize: 9 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ width: 8, height: 8, background: DIM, flexShrink: 0 }} />
+          <span style={{ color: MUTED }}>HTTP/1.x</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ width: 8, height: 8, background: US_EXPOSURE, flexShrink: 0 }} />
+          <span style={{ color: MUTED }}>HTTP/2</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ width: 8, height: 8, background: CYAN, flexShrink: 0 }} />
+          <span style={{ color: MUTED }}>HTTP/3 (QUIC)</span>
+        </div>
+      </div>
+
+      <div style={{ fontFamily: MONO, fontSize: 8, color: MUTED, letterSpacing: '0.05em', marginTop: 4 }}>
+        latest: {(latest.http3_pct ?? 0).toFixed(2)}% HTTP/3 on {latest.date} · via Cloudflare Radar
+      </div>
+    </section>
+  )
+}
