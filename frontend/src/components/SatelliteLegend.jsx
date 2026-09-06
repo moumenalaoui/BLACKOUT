@@ -61,7 +61,7 @@ function Row({ active, color, label, count, onClick }) {
       <span
         style={{
           fontFamily: MONO,
-          fontSize: 9,
+          fontSize: 10,
           letterSpacing: '0.03em',
           color: active ? WHITE : MUTED,
           flex: 1,
@@ -111,7 +111,7 @@ export default function SatelliteLegend({ selection, onSelect, counts }) {
           marginBottom: 1,
         }}
       >
-        <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.1em', color: WHITE }}>
+        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: WHITE }}>
           SPACE TRACKING
         </span>
         <button
@@ -121,14 +121,14 @@ export default function SatelliteLegend({ selection, onSelect, counts }) {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 3,
+            gap: 4,
             background: 'transparent',
             border: `1px solid ${selection === 'none' ? HIGHLIGHT : BORDER}`,
             color: selection === 'none' ? HIGHLIGHT : MUTED,
             fontFamily: MONO,
-            fontSize: 8,
+            fontSize: 9,
             letterSpacing: '0.08em',
-            padding: '1px 4px',
+            padding: '2px 5px',
             cursor: 'pointer',
           }}
         >
