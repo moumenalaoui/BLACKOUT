@@ -525,13 +525,24 @@ export default function App() {
               window instead, so it holds the same spot on screen regardless
               of sidebar state — `bottom: 36` reproduces the same visual
               offset as the old `bottom: 12` inside <main> once the 24px
-              StatusBar footer below <main> is accounted for. */}
+              StatusBar footer below <main> is accounted for.
+
+              `right: 392` permanently reserves the country sidebar's width
+              (380px + a 12px gap), the same way `left: 288` permanently
+              reserves GlobalRanking's — even though the sidebar, unlike
+              GlobalRanking, isn't always mounted. Since this group no longer
+              re-centers when the sidebar opens (see above), splitting the
+              difference between "centered when closed" and "clear of the
+              sidebar when open" isn't possible with one static position;
+              always reserving the space is the option that never overlaps,
+              at the cost of sitting slightly left of true-center while the
+              sidebar is closed. */}
           <div
             style={{
               position: 'fixed',
               bottom: 36,
               left: 288,
-              right: 12,
+              right: 392,
               display: 'flex',
               justifyContent: 'center',
               gap: 12,
