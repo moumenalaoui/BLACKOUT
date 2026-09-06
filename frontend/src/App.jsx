@@ -17,6 +17,7 @@ import {
   getCountry,
   getCables,
   getGeo,
+  getIxpStats,
   getOutages,
   getSatellites,
   getSatelliteOrbit,
@@ -61,6 +62,9 @@ export default function App() {
   // an always-relevant signal.
   const [cables, setCables] = useState({ routes: [], landing_points: [] })
   const [showCables, setShowCables] = useState(false)
+  // Per-country Internet Exchange Point density (not a live feed — see
+  // getIxpStats()'s doc comment). Fetched once, same shape as starlinkStatus.
+  const [ixpStats, setIxpStats] = useState([])
   // Composite censorship index (code -> 0–100) driving the globe choropleth,
   // plus its on/off toggle (default on).
   const [indexByCode, setIndexByCode] = useState({})
@@ -219,6 +223,28 @@ export default function App() {
       cancelled = true
     }
   }, [])
+
+  // IXP density: fetched once, same non-fatal shape as getStarlinkStatus().
+  useEffect(() => {
+    let cancelled = false
+
+    getIxpStats()
+      .then((rows) => {
+        if (!cancelled) setIxpStats(rows)
+      })
+      .catch(() => {
+        if (!cancelled) setIxpStats([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const ixpByCode = useMemo(
+    () => Object.fromEntries(ixpStats.map((s) => [s.country_code, s])),
+    [ixpStats],
+  )
 
   // Composite censorship index for the choropleth. Non-fatal: on failure the
   // globe simply renders without fills.
@@ -532,6 +558,7 @@ export default function App() {
                 country={sidebarCountry}
                 layer={layer}
                 starlinkStatus={starlinkByCode[sidebarCountry?.country_code]}
+                ixpStats={ixpByCode[sidebarCountry?.country_code]}
                 onClose={() => {
                   setSelectedCode('')
                   setSelectedCountry(null)
