@@ -79,6 +79,19 @@ fn groups_from_cache(
         .collect()
 }
 
+/// Total element count across every cached group plus supplemental — used to
+/// decide whether there's anything at all to publish. Deliberately *not*
+/// `groups.is_empty()`: a group whose fetch nominally "succeeds" with an
+/// empty array (e.g. a misconfigured `SATELLITE_GROUPS` name CelesTrak still
+/// accepts but matches nothing) would otherwise count as "has data" forever
+/// after, silently defeating the whole safety net on every future cycle too.
+fn total_cached_elements(
+    groups: &[(String, Vec<sgp4::Elements>)],
+    supplemental: &[sgp4::Elements],
+) -> usize {
+    groups.iter().map(|(_, els)| els.len()).sum::<usize>() + supplemental.len()
+}
+
 /// Refetches every configured source and merges whatever's now available
 /// (freshly fetched this cycle, or `cache`'s last-known-good for any source
 /// that failed) into the catalog. Only errors out — leaving the catalog
@@ -122,7 +135,7 @@ async fn fetch_and_store(catalog: &SatelliteCatalog, cache: &mut SourceCache) ->
     }
 
     let groups = groups_from_cache(&groups_config, cache);
-    if groups.is_empty() && cache.supplemental.is_empty() {
+    if total_cached_elements(&groups, &cache.supplemental) == 0 {
         anyhow::bail!("no satellite data available yet from any source");
     }
 
@@ -358,6 +371,24 @@ mod tests {
         assert_eq!(merged.len(), 1);
         assert_eq!(merged[0].0, 200);
         assert_eq!(merged[0].1, "starlink");
+    }
+
+    #[test]
+    fn total_cached_elements_counts_actual_objects_not_group_presence() {
+        // The exact regression this guards against: a group that "succeeded"
+        // with zero objects must not read as "we have data" — only actual
+        // element counts should.
+        let groups = vec![("starlink".to_string(), vec![])];
+        assert_eq!(total_cached_elements(&groups, &[]), 0);
+
+        let groups = vec![
+            ("starlink".to_string(), vec![]),
+            ("gps".to_string(), vec![fixture(1), fixture(2)]),
+        ];
+        assert_eq!(total_cached_elements(&groups, &[]), 2);
+
+        assert_eq!(total_cached_elements(&[], &[fixture(1)]), 1);
+        assert_eq!(total_cached_elements(&[], &[]), 0);
     }
 
     #[test]
