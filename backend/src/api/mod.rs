@@ -1,3 +1,4 @@
+pub mod bgp_visibility;
 pub mod blocking;
 pub mod categories;
 pub mod censorship_index;
@@ -5,6 +6,7 @@ pub mod countries;
 pub mod country_scores;
 pub mod geo;
 pub mod health;
+pub mod http_protocol_share;
 // Unrouted on the public deployment — see the router in main.rs.
 #[allow(dead_code)]
 pub mod evaluate;

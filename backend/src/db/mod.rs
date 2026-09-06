@@ -57,6 +57,13 @@ const DEFAULT_FETCH_INTERVAL_HOURS: f64 = 6.0;
 /// third-party APIs; a misconfigured interval should be slow, never abusive.
 const MIN_FETCH_INTERVAL_SECS: u64 = 60;
 
+/// Default gap between "precision" cycles (HTTP/3 protocol-share, BGP prefix
+/// visibility) — much shorter than `DEFAULT_FETCH_INTERVAL_HOURS` on purpose:
+/// these two exist specifically to be leading indicators (catching a protocol
+/// collapse or route withdrawal while it's happening), so a 6h-stale reading
+/// would defeat the point.
+const DEFAULT_PRECISION_INTERVAL_HOURS: f64 = 1.0;
+
 async fn run_with_timeout<F>(state: &AppState, name: &str, seconds: u64, fut: F)
 where
     F: std::future::Future<Output = Result<()>>,
@@ -189,7 +196,12 @@ fn report_cycle(state: &AppState) {
 /// every external fetch finishes.
 pub async fn run_fetchers(state: &AppState) {
     tokio::join!(
-        run_with_timeout(state, "ooni", 300, crate::fetchers::ooni::fetch_and_store(state)),
+        run_with_timeout(
+            state,
+            "ooni",
+            300,
+            crate::fetchers::ooni::fetch_and_store(state)
+        ),
         run_with_timeout(
             state,
             "ooni_categories",
@@ -208,14 +220,85 @@ pub async fn run_fetchers(state: &AppState) {
             30,
             crate::fetchers::cloudflare::fetch_and_store(state)
         ),
-        run_with_timeout(state, "ioda", 180, crate::fetchers::ioda::fetch_and_store(state)),
+        run_with_timeout(
+            state,
+            "ioda",
+            180,
+            crate::fetchers::ioda::fetch_and_store(state)
+        ),
         run_with_timeout(
             state,
             "indices",
             60,
             crate::fetchers::indices::fetch_and_store(state)
         ),
-        run_with_timeout(state, "pulse", 90, crate::fetchers::pulse::fetch_and_store(state)),
+        run_with_timeout(
+            state,
+            "pulse",
+            90,
+            crate::fetchers::pulse::fetch_and_store(state)
+        ),
     );
     println!("Background data fetchers finished.");
+}
+
+/// Re-runs the precision fetchers forever, `PRECISION_FETCH_INTERVAL_HOURS`
+/// apart. A structural copy of `run_fetcher_loop` (same
+/// spawn/loop/sleep/report_cycle shape) but on its own, much shorter default
+/// cadence — see `DEFAULT_PRECISION_INTERVAL_HOURS`. Kept as a second,
+/// independent loop rather than folded into `run_fetcher_loop` because these
+/// two fetchers need a fundamentally different cadence than the rest, not
+/// because they need different state (they still write through the same
+/// `AppState`/SQLite `Arc<Mutex<Connection>>` as every other fetcher — unlike
+/// the satellite feature's separate in-memory catalog, which needed a
+/// different *state* pattern, not just a different cadence).
+pub async fn run_precision_fetcher_loop(state: AppState) {
+    let hours = std::env::var("PRECISION_FETCH_INTERVAL_HOURS")
+        .ok()
+        .and_then(|v| v.parse::<f64>().ok())
+        .filter(|h| h.is_finite() && *h > 0.0)
+        .unwrap_or(DEFAULT_PRECISION_INTERVAL_HOURS);
+    let secs = ((hours * 3600.0) as u64).max(MIN_FETCH_INTERVAL_SECS);
+    let gap = Duration::from_secs(secs);
+    println!("Precision fetch loop: every {hours}h ({secs}s)");
+
+    loop {
+        run_precision_fetchers(&state).await;
+        report_cycle(&state);
+        tokio::time::sleep(gap).await;
+    }
+}
+
+/// Runs the two leading-indicator fetchers concurrently. Distinct
+/// `fetch_runs` names from the existing `"cloudflare"` fetcher (which hits a
+/// different Radar sub-API) so their run history doesn't collide in the same
+/// bookkeeping table.
+pub async fn run_precision_fetchers(state: &AppState) {
+    tokio::join!(
+        // Both are whole-globe, one-request-per-country sweeps like ioda.rs's
+        // (~230 countries), so pacing alone (300ms/200ms per country) is
+        // 45-70s before any actual network time is added. This loop runs
+        // hourly in the background and blocks nothing user-facing, so a
+        // sweep that occasionally needs a large budget is fine, and
+        // INSERT OR REPLACE means an interrupted sweep just picks up more
+        // countries next cycle rather than losing anything.
+        //
+        // Cloudflare Radar's HTTP_VERSION timeseries endpoint measured at
+        // roughly 1s/request in testing (far slower than ioda's or
+        // RIPEstat's own APIs) — 300s still timed out mid-sweep, so this
+        // gets a larger budget than any other fetcher in this codebase.
+        run_with_timeout(
+            state,
+            "cloudflare_http_protocol",
+            600,
+            crate::fetchers::cloudflare_http::fetch_and_store(state)
+        ),
+        run_with_timeout(
+            state,
+            "ripestat_bgp_visibility",
+            300,
+            crate::fetchers::ripestat::fetch_and_store(state)
+        ),
+    );
+    println!("Precision fetchers finished.");
 }
