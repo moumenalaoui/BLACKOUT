@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import BgpVisibilityChart from './BgpVisibilityChart'
 import CategoryBreakdown from './CategoryBreakdown'
 import GlobalIndices from './GlobalIndices'
+import Http3ShareChart from './Http3ShareChart'
 import MessagingStatus from './MessagingStatus'
 import OutageTimeline from './OutageTimeline'
 import ResilienceIndex from './ResilienceIndex'
@@ -193,6 +195,10 @@ export default function CountrySidebar({ country, layer, onClose }) {
         <CategoryBreakdown countryCode={country.country_code} />
 
         <OutageTimeline countryCode={country.country_code} />
+
+        <Http3ShareChart countryCode={country.country_code} />
+
+        <BgpVisibilityChart countryCode={country.country_code} />
 
         <ResilienceIndex countryCode={country.country_code} />
 
