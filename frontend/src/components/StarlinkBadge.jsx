@@ -13,7 +13,10 @@ const STATUS_COLOR = {
 // starlink_status.json) — the citation in the title/footer text is
 // deliberate, so this never reads as a refreshed feed the way every other
 // badge/chart in this sidebar is. Renders nothing if `entry` is null/
-// undefined: absence means no known restriction, not "unknown".
+// undefined: absence means no known restriction, not "unknown". Lives in the
+// NETWORK & PROTOCOL theme in CountrySidebar.jsx (alongside IXP density) —
+// an alternative-connectivity/infrastructure signal like its section-mates,
+// not an at-a-glance flag that belongs ahead of everything else.
 export default function StarlinkBadge({ entry }) {
   if (!entry) return null
   const color = STATUS_COLOR[entry.status] ?? MUTED
@@ -24,7 +27,6 @@ export default function StarlinkBadge({ entry }) {
         display: 'flex',
         alignItems: 'flex-start',
         gap: 6,
-        marginTop: 8,
         border: `1px solid ${color}`,
         padding: '4px 8px',
       }}

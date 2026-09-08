@@ -225,8 +225,6 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
             ×
           </button>
         </div>
-
-        <StarlinkBadge entry={starlinkStatus} />
       </div>
 
       <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -238,6 +236,8 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
           <BgpVisibilityChart countryCode={country.country_code} />
 
           <IxpBadge entry={ixpStats} />
+
+          <StarlinkBadge entry={starlinkStatus} />
         </ThemeSection>
 
         {aiAccessGroups.length > 0 && (
