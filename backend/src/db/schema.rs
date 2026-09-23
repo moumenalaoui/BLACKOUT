@@ -417,6 +417,27 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             PRIMARY KEY (country_code, category_code)
         );
 
+        -- Per-source last-known-good CelesTrak GP element sets (see
+        -- fetchers::satellites::SourceCache), persisted so a process restart
+        -- or a redeploy landing inside CelesTrak's own ~2h rate-limit window
+        -- doesn't throw away satellites that were already fetched at least
+        -- once. The in-memory catalog (satellites/mod.rs) stays the hot path
+        -- for per-request SGP4 propagation; this table is a durability layer
+        -- underneath it, read once at startup and rewritten in full after
+        -- every refresh cycle that has anything to save.
+        -- `source_group` + `norad_id` together are the key, not `norad_id`
+        -- alone, because the same satellite legitimately appears in more than
+        -- one CelesTrak group (e.g. a Starlink satellite also shows up in the
+        -- generic `active` sweep), and each group's own copy is needed to
+        -- reproduce `merge_sources`'s precedence rules on reload.
+        CREATE TABLE IF NOT EXISTS satellite_elements (
+            source_group  TEXT NOT NULL,
+            norad_id      INTEGER NOT NULL,
+            elements_json TEXT NOT NULL,
+            updated_at    TEXT NOT NULL,
+            PRIMARY KEY (source_group, norad_id)
+        );
+
         -- ── Indexes ──────────────────────────────────────────────────────
         --
         -- tor_metrics is keyed on a synthetic `id` ('{country}-{date}'), so

@@ -73,12 +73,17 @@ async fn main() -> anyhow::Result<()> {
         db::run_fetcher_loop(fetch_state).await;
     });
 
-    // Independent of AppState/SQLite entirely, and on its own (much shorter)
-    // cadence than the fetchers above — see `satellites` module docs for why.
+    // The hot in-memory catalog (`SatelliteCatalog`) is independent of
+    // AppState/SQLite, and on its own (much shorter) cadence than the
+    // fetchers above — see `satellites` module docs for why. It still gets
+    // its own `AppState` clone, same as the two loops above, purely so its
+    // refresh loop can persist/restore a durable copy of what it fetches.
     let satellite_catalog = satellites::new_catalog();
     let satellite_fetch_catalog = satellite_catalog.clone();
+    let satellite_fetch_state = state.clone();
     tokio::spawn(async move {
-        fetchers::satellites::run_catalog_refresh_loop(satellite_fetch_catalog).await;
+        fetchers::satellites::run_catalog_refresh_loop(satellite_fetch_catalog, satellite_fetch_state)
+            .await;
     });
 
     // Same AppState/SQLite state as the fetch loop above — just a much
