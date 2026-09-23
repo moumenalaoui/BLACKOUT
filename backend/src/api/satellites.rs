@@ -10,11 +10,15 @@
 //! sync, and this endpoint is what a client is expected to poll every 5-10s
 //! for visibly-moving satellites (see the frontend's polling `useEffect`).
 
-use crate::models::satellite::{OrbitPoint, OrbitResponse, SatellitePosition, SatellitesResponse};
+use crate::AppState;
+use crate::db::satellite_catalog as store;
+use crate::models::satellite::{
+    OrbitPoint, OrbitResponse, SatellitePosition, SatelliteStatus, SatellitesResponse,
+};
 use crate::satellites::{SatelliteCatalog, geodetic, orbit};
 use axum::{
     Json,
-    extract::{Extension, Path, Query},
+    extract::{Extension, Path, Query, State},
     http::StatusCode,
 };
 use chrono::Utc;
@@ -62,6 +66,9 @@ pub async fn list_satellites(
         .read()
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let now = Utc::now();
+    // Computed once per request, not once per satellite: the threshold is the
+    // same for all ~16k objects.
+    let stale_before = crate::satellites::stale_cutoff(now);
 
     let mut satellites = Vec::new();
     for sat in guard.objects.iter() {
@@ -78,6 +85,7 @@ pub async fn list_satellites(
                 lat,
                 lon,
                 alt_km,
+                stale: sat.last_updated < stale_before,
             }),
             Err(e) => {
                 eprintln!(
@@ -90,14 +98,68 @@ pub async fn list_satellites(
 
     let total = guard.objects.len();
     let category_counts = tally_categories(guard.objects.iter().map(|s| s.category.as_str()));
+    // Catalog-wide, not filtered — same reasoning as `category_counts`: the
+    // frontend needs to state overall freshness regardless of the selection.
+    let stale_count = guard
+        .objects
+        .iter()
+        .filter(|s| s.last_updated < stale_before)
+        .count();
 
     Ok(Json(SatellitesResponse {
         generated_at: now,
         catalog_updated_at: guard.catalog_updated_at,
         total,
+        fresh_count: total - stale_count,
+        stale_count,
         category_counts,
         satellites,
     }))
+}
+
+/// `GET /api/satellites/status` — pipeline diagnostics.
+///
+/// Takes both extractors because the two halves of the answer live in two
+/// places on purpose: what is being *served* comes from the in-memory catalog,
+/// and the refresh history comes from SQLite (where it survives restarts).
+/// Reading them together is the only way to report, say, a healthy 16k catalog
+/// whose CelesTrak half has not refreshed in a day.
+pub async fn satellites_status(
+    Extension(catalog): Extension<SatelliteCatalog>,
+    State(state): State<AppState>,
+) -> Result<Json<SatelliteStatus>, StatusCode> {
+    let now = Utc::now();
+    let stale_before = crate::satellites::stale_cutoff(now);
+
+    let (satellite_count, stale_satellite_count, current_data_sources) = {
+        let guard = catalog
+            .read()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let stale = guard
+            .objects
+            .iter()
+            .filter(|s| s.last_updated < stale_before)
+            .count();
+        let sources = tally_categories(guard.objects.iter().map(|s| s.source.as_str()));
+        (guard.objects.len(), stale, sources)
+    };
+
+    let conn = state.lock().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let last_successful_refresh = store::get_state_ts(&conn, store::LAST_SUCCESSFUL_REFRESH);
+    let body = SatelliteStatus {
+        satellite_count,
+        fresh_satellite_count: satellite_count - stale_satellite_count,
+        stale_satellite_count,
+        last_successful_refresh,
+        catalog_age_seconds: last_successful_refresh.map(|t| (now - t).num_seconds()),
+        last_celestrak_success: store::get_state_ts(&conn, store::LAST_CELESTRAK_SUCCESS),
+        last_satnogs_success: store::get_state_ts(&conn, store::LAST_SATNOGS_SUCCESS),
+        refresh_status: store::get_state(&conn, store::LAST_REFRESH_STATUS),
+        current_data_sources,
+        persisted_count: store::count(&conn).unwrap_or(0),
+        stale_after_hours: (now - stale_before).num_seconds() as f64 / 3600.0,
+    };
+    Ok(Json(body))
 }
 
 pub async fn satellite_orbit(
@@ -114,6 +176,7 @@ pub async fn satellite_orbit(
         .ok_or(StatusCode::NOT_FOUND)?;
 
     let now = Utc::now();
+    let stale_before = crate::satellites::stale_cutoff(now);
     let period_minutes = orbit::period_minutes(sat.elements.mean_motion);
     let points = orbit::sample_orbit(
         &sat.elements,
@@ -139,6 +202,11 @@ pub async fn satellite_orbit(
         name: sat.name.clone(),
         period_minutes,
         generated_at: now,
+        source: sat.source.as_str().to_string(),
+        epoch: sat.epoch,
+        last_updated: sat.last_updated,
+        age_hours: (now - sat.epoch).num_seconds() as f64 / 3600.0,
+        stale: sat.last_updated < stale_before,
         segments,
     }))
 }

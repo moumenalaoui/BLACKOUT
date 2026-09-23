@@ -13,6 +13,16 @@
 #   /app/data/seed       committed seed files   -> SEED_DIR=/app/data/seed
 # The SQLite database lives on the mounted volume, NOT in the image:
 #   /data/mena_ai.db                            -> DATABASE_PATH=/data/mena_ai.db
+#
+# /data MUST be a real mounted volume. It is not optional and it cannot be
+# configured from this repo: Railway volumes are created per service in the
+# dashboard (Settings -> Volumes, mount path /data), not in railway.json. With
+# no volume attached, /data is just a directory in the container filesystem and
+# every redeploy starts from an empty database — which for the satellite
+# catalog means rebuilding ~16k objects from CelesTrak on each deploy, and
+# coming back with a fraction of them whenever CelesTrak is rate-limiting or
+# unreachable. The server prints a WARNING block at boot when it opens a
+# database with no previous state; see README "Deployment (Railway)".
 
 
 # ---------------------------------------------------------------------------
