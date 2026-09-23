@@ -2,6 +2,7 @@ pub mod cables;
 pub mod countries;
 pub mod ixp;
 pub mod migrations;
+pub mod satellite_elements;
 pub mod schema;
 pub mod seed;
 pub mod starlink_status;
@@ -89,7 +90,11 @@ where
 }
 
 /// Upserts this fetcher's row in `fetch_runs`. `error` None means success.
-fn record_run(state: &AppState, name: &str, error: Option<&str>) -> Result<()> {
+/// `pub(crate)`: also called directly by `fetchers::satellites`, which runs
+/// its own loop instead of going through `run_with_timeout` above (its cycle
+/// legitimately runs longer than any other fetcher's timeout budget, since it
+/// makes up to a dozen sequential CelesTrak requests with a 30s timeout each).
+pub(crate) fn record_run(state: &AppState, name: &str, error: Option<&str>) -> Result<()> {
     let now = crate::util::date::now_utc_iso();
     let conn = state
         .lock()

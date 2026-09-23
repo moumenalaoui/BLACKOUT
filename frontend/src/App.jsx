@@ -32,6 +32,13 @@ import './App.css'
 // bug where a comparable reference implementation (OSIRIS) fetched positions
 // once per session and never re-polled.
 const SATELLITE_POLL_MS = 7000
+// Backend default cadence is 2h (SATELLITE_CATALOG_REFRESH_HOURS) — flag the
+// panel stale at 2x that, so one slow refresh cycle isn't a false alarm but
+// two in a row is.
+const SATELLITE_STALE_AFTER_MS = 4 * 60 * 60 * 1000
+// A handful of consecutive poll failures (each SATELLITE_POLL_MS apart) means
+// a broken connection, not one dropped frame.
+const SATELLITE_STALE_AFTER_FAILURES = 3
 
 export default function App() {
   // `countries` and `blocking` are owned here and passed down, rather than
@@ -79,6 +86,13 @@ export default function App() {
   const [spaceTrackingCounts, setSpaceTrackingCounts] = useState({})
   const [selectedSatelliteId, setSelectedSatelliteId] = useState(null)
   const [satelliteOrbit, setSatelliteOrbit] = useState(null)
+  // When the satellite catalog was last successfully refreshed (the
+  // backend's `catalog_updated_at`, distinct from a browser-side fetch
+  // timestamp — see `dataAge`'s doc comment above for the same reasoning),
+  // and whether the panel should flag itself as showing stale/last-known
+  // data rather than silently going blank on a fetch hiccup.
+  const [satelliteCatalogUpdatedAt, setSatelliteCatalogUpdatedAt] = useState(null)
+  const [satellitesStale, setSatellitesStale] = useState(false)
   // Freshness of the DATA, not of the last network call. This used to be
   // `Date.now()` stamped whenever a fetch returned, which meant the status bar
   // read "3s ago" over a database that had not been refreshed in weeks — the
@@ -321,7 +335,9 @@ export default function App() {
   // Skips the fetch entirely (and clears the rendered layer) when "NONE" is
   // selected, so a hidden layer costs nothing — but leaves
   // `spaceTrackingCounts` alone so the legend's per-row counts stay visible
-  // rather than flickering to zero while hidden.
+  // rather than flickering to zero while hidden. A fetch error keeps the
+  // last-known satellites/counts on screen too (see `satellitesStale`)
+  // rather than blanking, since a transient poll hiccup isn't "no data".
   useEffect(() => {
     if (spaceTrackingSelection === 'none') {
       setSatellites([])
@@ -330,15 +346,27 @@ export default function App() {
 
     const category = spaceTrackingSelection === 'all' ? null : spaceTrackingSelection
     let cancelled = false
+    let consecutiveFailures = 0
     async function poll() {
       try {
         const data = await getSatellites(category)
-        if (!cancelled) {
-          setSatellites(data.satellites)
-          setSpaceTrackingCounts({ total: data.total, ...data.category_counts })
-        }
+        if (cancelled) return
+        consecutiveFailures = 0
+        setSatellites(data.satellites)
+        setSpaceTrackingCounts({ total: data.total, ...data.category_counts })
+        setSatelliteCatalogUpdatedAt(data.catalog_updated_at ?? null)
+        const age = data.catalog_updated_at
+          ? Date.now() - new Date(data.catalog_updated_at).getTime()
+          : Infinity
+        setSatellitesStale(age > SATELLITE_STALE_AFTER_MS)
       } catch {
-        if (!cancelled) setSatellites([])
+        // A transient poll error is not "there is nothing to show" — keep
+        // showing the last-known satellites/counts instead of blanking, but
+        // flag them stale once enough failures in a row rule out one dropped
+        // frame.
+        if (cancelled) return
+        consecutiveFailures += 1
+        if (consecutiveFailures >= SATELLITE_STALE_AFTER_FAILURES) setSatellitesStale(true)
       }
     }
 
@@ -562,6 +590,8 @@ export default function App() {
             selection={spaceTrackingSelection}
             onSelect={setSpaceTrackingSelection}
             counts={spaceTrackingCounts}
+            stale={satellitesStale}
+            updatedAt={satelliteCatalogUpdatedAt}
           />
 
           <SatelliteCard

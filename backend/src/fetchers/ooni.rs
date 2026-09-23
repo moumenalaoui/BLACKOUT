@@ -252,23 +252,40 @@ static REGISTRY: &[Technology] = &[
 
 /// Runs the adoption-signal reachability sweep, the per-technology block
 /// sweep, and the historical timeline backfill. Each phase is independent —
-/// a failure in one does not prevent the others from running.
+/// a failure in one does not prevent the others from running — but a failure
+/// in any of them is still reported to the caller (rather than always
+/// returning `Ok`), so `fetch_runs`/`/health` actually reflect a degraded
+/// cycle instead of showing "ok" no matter what happened underneath.
 pub async fn fetch_and_store(state: &AppState) -> Result<()> {
     // The set of ISO codes we recognise, read once. Every sweep groups by
     // country server-side and filters its response against this, dropping the
     // junk dimensions OONI emits (e.g. `ZZ`) rather than storing them as
     // countries.
     let known = known_codes(state)?;
+    let mut failures = Vec::new();
+
     if let Err(e) = fetch_and_store_signals(state, &known).await {
         eprintln!("ooni: adoption signal fetch failed: {e}");
+        failures.push(format!("signals: {e}"));
     }
     if let Err(e) = fetch_and_store_technology_blocks(state, &known).await {
         eprintln!("ooni: technology block fetch failed: {e}");
+        failures.push(format!("technology_blocks: {e}"));
     }
     if let Err(e) = fetch_and_store_timeline(state, &known).await {
         eprintln!("ooni: timeline fetch failed: {e}");
+        failures.push(format!("timeline: {e}"));
     }
-    Ok(())
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        anyhow::bail!(
+            "{}/3 phase(s) had failures: {}",
+            failures.len(),
+            failures.join(" | ")
+        )
+    }
 }
 
 /// The per-content-category sweep, run as its own fetcher (see run_fetchers)
@@ -310,8 +327,13 @@ async fn get_with_retry(
                 .get(reqwest::header::RETRY_AFTER)
                 .and_then(|v| v.to_str().ok())
                 .and_then(|s| s.parse::<u64>().ok())
-                .unwrap_or_else(|| 3u64 * 2u64.pow(attempt));
-            tokio::time::sleep(Duration::from_secs(wait_secs.min(60))).await;
+                .unwrap_or_else(|| 3u64 * 2u64.pow(attempt))
+                .min(60);
+            eprintln!(
+                "ooni: rate-limited (429) on {url}, retrying in {wait_secs}s (attempt {}/{MAX_RATE_LIMIT_RETRIES})",
+                attempt + 1
+            );
+            tokio::time::sleep(Duration::from_secs(wait_secs)).await;
             attempt += 1;
             continue;
         }
@@ -354,6 +376,7 @@ async fn fetch_and_store_signals(state: &AppState, known: &HashSet<String>) -> R
         .timeout(REQUEST_TIMEOUT)
         .build()?;
     let since = days_ago_iso(POINT_IN_TIME_WINDOW_DAYS);
+    let mut failures = Vec::new();
 
     for url in TARGET_URLS {
         let host = host_of(url);
@@ -385,13 +408,27 @@ async fn fetch_and_store_signals(state: &AppState, known: &HashSet<String>) -> R
                     .collect();
                 if let Err(e) = insert_signals(state, url, &rows) {
                     eprintln!("ooni: failed to store signals for {url}: {e}");
+                    failures.push(format!("{url} (store): {e}"));
                 }
             }
-            Err(e) => eprintln!("ooni: failed to fetch signals for {url}: {e}"),
+            Err(e) => {
+                eprintln!("ooni: failed to fetch signals for {url}: {e}");
+                failures.push(format!("{url} (fetch): {e}"));
+            }
         }
         tokio::time::sleep(REQUEST_PACING).await;
     }
-    Ok(())
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        anyhow::bail!(
+            "{}/{} signal URL(s) failed: {}",
+            failures.len(),
+            TARGET_URLS.len(),
+            failures.join(" | ")
+        )
+    }
 }
 
 /// Confirmed blocking on any measurement wins outright. Otherwise, any anomaly
@@ -496,6 +533,7 @@ async fn fetch_and_store_technology_blocks(
         .timeout(REQUEST_TIMEOUT)
         .build()?;
     let since = days_ago_iso(POINT_IN_TIME_WINDOW_DAYS);
+    let mut failures = Vec::new();
 
     for tech in REGISTRY {
         let host = tech.url.map(host_of);
@@ -532,16 +570,30 @@ async fn fetch_and_store_technology_blocks(
                         "ooni: failed to store technology blocks for {}: {e}",
                         tech.key
                     );
+                    failures.push(format!("{} (store): {e}", tech.key));
                 }
             }
-            Err(e) => eprintln!(
-                "ooni: failed to fetch technology blocks for {}: {e}",
-                tech.key
-            ),
+            Err(e) => {
+                eprintln!(
+                    "ooni: failed to fetch technology blocks for {}: {e}",
+                    tech.key
+                );
+                failures.push(format!("{} (fetch): {e}", tech.key));
+            }
         }
         tokio::time::sleep(REQUEST_PACING).await;
     }
-    Ok(())
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        anyhow::bail!(
+            "{}/{} technology/technologies failed: {}",
+            failures.len(),
+            REGISTRY.len(),
+            failures.join(" | ")
+        )
+    }
 }
 
 /// Classifies by anomaly rate + sample size rather than the `confirmed` flag
@@ -780,6 +832,7 @@ async fn fetch_and_store_timeline(state: &AppState, known: &HashSet<String>) -> 
     let client = reqwest::Client::builder()
         .timeout(REQUEST_TIMEOUT)
         .build()?;
+    let mut failures = Vec::new();
 
     for &tech_key in TIMELINE_TECHS {
         let Some(tech) = REGISTRY.iter().find(|t| t.key == tech_key) else {
@@ -825,13 +878,27 @@ async fn fetch_and_store_timeline(state: &AppState, known: &HashSet<String>) -> 
                     .collect();
                 if let Err(e) = insert_timeline_rows(state, tech_key, &rows) {
                     eprintln!("ooni: failed to store timeline for {tech_key}: {e}");
+                    failures.push(format!("{tech_key} (store): {e}"));
                 }
             }
-            Err(e) => eprintln!("ooni: failed to fetch timeline for {tech_key}: {e}"),
+            Err(e) => {
+                eprintln!("ooni: failed to fetch timeline for {tech_key}: {e}");
+                failures.push(format!("{tech_key} (fetch): {e}"));
+            }
         }
         tokio::time::sleep(REQUEST_PACING).await;
     }
-    Ok(())
+
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        anyhow::bail!(
+            "{}/{} timeline technology/technologies failed: {}",
+            failures.len(),
+            TIMELINE_TECHS.len(),
+            failures.join(" | ")
+        )
+    }
 }
 
 fn insert_timeline_rows(state: &AppState, technology: &str, rows: &[TimelineRow]) -> Result<()> {

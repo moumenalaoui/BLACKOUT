@@ -105,55 +105,13 @@ fn total_cached_elements(
     groups.iter().map(|(_, els)| els.len()).sum::<usize>() + supplemental.len()
 }
 
-/// Refetches every configured source and merges whatever's now available
-/// (freshly fetched this cycle, or `cache`'s last-known-good for any source
-/// that failed) into the catalog. Only errors out — leaving the catalog
-/// completely untouched — when literally no source has ever succeeded, since
-/// there is nothing at all to publish in that case. Only called from
-/// `run_catalog_refresh_loop` below (unlike the other fetchers' `fetch_and_store`,
-/// which `db::run_fetchers` calls directly), so this stays module-private.
-async fn fetch_and_store(catalog: &SatelliteCatalog, cache: &mut SourceCache) -> Result<()> {
-    let client = reqwest::Client::builder()
-        .timeout(REQUEST_TIMEOUT)
-        .build()?;
-
-    let groups_config = configured_groups();
-    let mut any_failed = false;
-
-    for (group, _category) in &groups_config {
-        match fetch_group(&client, group).await {
-            Ok(elements) => {
-                cache.groups.insert(group.clone(), elements);
-            }
-            Err(e) => {
-                any_failed = true;
-                eprintln!(
-                    "satellites: group `{group}` fetch failed this cycle, reusing its previous \
-                     data if any (other groups are unaffected): {e}"
-                );
-            }
-        }
-        tokio::time::sleep(REQUEST_PACING).await;
-    }
-
-    match fetch_starlink_supplemental(&client).await {
-        Ok(elements) => cache.supplemental = elements,
-        Err(e) => {
-            any_failed = true;
-            eprintln!(
-                "satellites: starlink supplemental fetch failed this cycle, reusing its previous \
-                 data if any: {e}"
-            );
-        }
-    }
-
-    let groups = groups_from_cache(&groups_config, cache);
-    if total_cached_elements(&groups, &cache.supplemental) == 0 {
-        anyhow::bail!("no satellite data available yet from any source");
-    }
-
-    let merged = merge_sources(groups, cache.supplemental.clone());
-
+/// Turns a merged `(norad_id, category, elements)` list into the
+/// `CachedSatellite`s the catalog actually stores, deriving `Constants` once
+/// per object and skipping (with a log line) any element set SGP4 rejects.
+/// Shared by a live fetch cycle and by `restore_from_disk`'s startup load, so
+/// a persisted-then-reloaded object is built exactly the same way a
+/// freshly-fetched one is.
+fn build_objects(merged: Vec<(u64, String, sgp4::Elements)>) -> Vec<CachedSatellite> {
     let mut objects = Vec::with_capacity(merged.len());
     let mut skipped = 0usize;
     for (norad_id, category, elements) in merged {
@@ -177,6 +135,62 @@ async fn fetch_and_store(catalog: &SatelliteCatalog, cache: &mut SourceCache) ->
     if skipped > 0 {
         eprintln!("satellites: {skipped} object(s) skipped this cycle (invalid elements)");
     }
+    objects
+}
+
+/// Refetches every configured source and merges whatever's now available
+/// (freshly fetched this cycle, or `cache`'s last-known-good for any source
+/// that failed) into the catalog. Only errors out — leaving the catalog
+/// completely untouched — when literally no source has ever succeeded, since
+/// there is nothing at all to publish in that case. Only called from
+/// `run_catalog_refresh_loop` below (unlike the other fetchers' `fetch_and_store`,
+/// which `db::run_fetchers` calls directly), so this stays module-private.
+async fn fetch_and_store(
+    catalog: &SatelliteCatalog,
+    cache: &mut SourceCache,
+    state: &crate::AppState,
+) -> Result<()> {
+    let client = reqwest::Client::builder()
+        .timeout(REQUEST_TIMEOUT)
+        .build()?;
+
+    let groups_config = configured_groups();
+    let mut any_failed = false;
+
+    for (group, _category) in &groups_config {
+        match fetch_group(&client, group).await {
+            Ok(elements) => {
+                cache.groups.insert(group.clone(), elements);
+            }
+            Err(e) => {
+                any_failed = true;
+                eprintln!(
+                    "satellites: group `{group}` fetch failed this cycle, reusing its previous \
+                     data if any (other groups are unaffected): {e:#}"
+                );
+            }
+        }
+        tokio::time::sleep(REQUEST_PACING).await;
+    }
+
+    match fetch_starlink_supplemental(&client).await {
+        Ok(elements) => cache.supplemental = elements,
+        Err(e) => {
+            any_failed = true;
+            eprintln!(
+                "satellites: starlink supplemental fetch failed this cycle, reusing its previous \
+                 data if any: {e:#}"
+            );
+        }
+    }
+
+    let groups = groups_from_cache(&groups_config, cache);
+    if total_cached_elements(&groups, &cache.supplemental) == 0 {
+        anyhow::bail!("no satellite data available yet from any source");
+    }
+
+    let merged = merge_sources(groups, cache.supplemental.clone());
+    let objects = build_objects(merged);
 
     let count = objects.len();
     let mut guard = catalog
@@ -185,6 +199,12 @@ async fn fetch_and_store(catalog: &SatelliteCatalog, cache: &mut SourceCache) ->
     guard.objects = objects;
     guard.catalog_updated_at = Some(chrono::Utc::now());
     drop(guard);
+
+    if let Err(e) = crate::db::satellite_elements::replace_all(state, &cache.groups, &cache.supplemental)
+    {
+        eprintln!("satellites: could not persist catalog to disk: {e:#}");
+    }
+
     if any_failed {
         println!(
             "satellites: catalog refreshed, {count} object(s) (one or more sources reused \
@@ -196,12 +216,66 @@ async fn fetch_and_store(catalog: &SatelliteCatalog, cache: &mut SourceCache) ->
     Ok(())
 }
 
+/// How often to retry while the catalog has never had any data at all this
+/// process — e.g. every CelesTrak source failing on a fresh boot (the
+/// incident this guards against: a container whose first boot can't reach
+/// CelesTrak for any group, which otherwise would leave the panel empty for
+/// a full `SATELLITE_CATALOG_REFRESH_HOURS` before the next attempt). Once
+/// any cycle produces data, the loop falls back to the normal cadence.
+const EMPTY_RETRY_INTERVAL: Duration = Duration::from_secs(180);
+
+/// Primes the cache/catalog from whatever was persisted last time this (or a
+/// previous) process successfully fetched anything, so `/api/satellites` can
+/// serve last-known-good data immediately on boot instead of waiting out a
+/// full refresh cycle — or, if this boot can't reach CelesTrak at all,
+/// instead of serving nothing until it can.
+fn restore_from_disk(catalog: &SatelliteCatalog, cache: &mut SourceCache, state: &crate::AppState) {
+    let loaded = match state.lock() {
+        Ok(conn) => crate::db::satellite_elements::load_all(&conn),
+        Err(_) => {
+            eprintln!("satellites: db lock poisoned, starting with an empty catalog");
+            return;
+        }
+    };
+    let loaded = match loaded {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("satellites: could not load persisted catalog: {e:#}");
+            return;
+        }
+    };
+
+    cache.groups = loaded.groups;
+    cache.supplemental = loaded.supplemental;
+
+    let groups_config = configured_groups();
+    let groups = groups_from_cache(&groups_config, cache);
+    if total_cached_elements(&groups, &cache.supplemental) == 0 {
+        return;
+    }
+
+    let merged = merge_sources(groups, cache.supplemental.clone());
+    let objects = build_objects(merged);
+    let count = objects.len();
+
+    if let Ok(mut guard) = catalog.write() {
+        guard.objects = objects;
+        guard.catalog_updated_at = loaded.updated_at;
+    }
+    println!("satellites: restored {count} object(s) from disk, last persisted {:?}", loaded.updated_at);
+}
+
 /// Mirrors `db::run_fetcher_loop`'s spawn/loop/sleep/log shape, but runs
 /// independently on its own cadence. CelesTrak's GP/SupGP data only updates
 /// roughly every 2 hours — far more often than the 6-hour default the other
 /// (SQLite-backed) fetchers share — so this can't just join their loop; it
 /// needs its own `SATELLITE_CATALOG_REFRESH_HOURS` interval.
-pub async fn run_catalog_refresh_loop(catalog: SatelliteCatalog) {
+///
+/// Takes `AppState` alongside the in-memory `SatelliteCatalog` purely for
+/// durability (persisting/restoring `satellite_elements`) — per-request
+/// position reads still go through the `RwLock` alone, never the DB mutex;
+/// see `crate::satellites`'s module docs for why that separation matters.
+pub async fn run_catalog_refresh_loop(catalog: SatelliteCatalog, state: crate::AppState) {
     let hours = std::env::var("SATELLITE_CATALOG_REFRESH_HOURS")
         .ok()
         .and_then(|v| v.parse::<f64>().ok())
@@ -215,12 +289,41 @@ pub async fn run_catalog_refresh_loop(catalog: SatelliteCatalog) {
     // data is this fetcher's own bookkeeping, not something a request handler
     // ever needs to read.
     let mut cache = SourceCache::default();
+    restore_from_disk(&catalog, &mut cache, &state);
 
     loop {
-        if let Err(e) = fetch_and_store(&catalog, &mut cache).await {
-            eprintln!("WARNING: satellite catalog refresh failed, keeping previous catalog: {e:#}");
+        // Not routed through `db::run_with_timeout` like every other
+        // fetcher: this cycle can legitimately run longer than any other
+        // fetcher's timeout budget (up to a dozen sequential CelesTrak
+        // requests, 30s timeout each), so it records its own `fetch_runs`
+        // outcome directly instead.
+        match fetch_and_store(&catalog, &mut cache, &state).await {
+            Ok(()) => {
+                if let Err(e) = crate::db::record_run(&state, "satellites", None) {
+                    eprintln!("satellites: could not record fetch outcome: {e}");
+                }
+            }
+            Err(e) => {
+                eprintln!(
+                    "WARNING: satellite catalog refresh failed, keeping previous catalog: {e:#}"
+                );
+                if let Err(re) = crate::db::record_run(&state, "satellites", Some(&e.to_string()))
+                {
+                    eprintln!("satellites: could not record fetch outcome: {re}");
+                }
+            }
         }
-        tokio::time::sleep(gap).await;
+
+        let catalog_has_data = catalog
+            .read()
+            .map(|guard| !guard.objects.is_empty())
+            .unwrap_or(false);
+        let next = if catalog_has_data {
+            gap
+        } else {
+            EMPTY_RETRY_INTERVAL
+        };
+        tokio::time::sleep(next).await;
     }
 }
 
