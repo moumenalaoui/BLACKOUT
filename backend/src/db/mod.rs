@@ -2,6 +2,7 @@ pub mod cables;
 pub mod countries;
 pub mod ixp;
 pub mod migrations;
+pub mod satellite_catalog;
 pub mod satellite_elements;
 pub mod schema;
 pub mod seed;

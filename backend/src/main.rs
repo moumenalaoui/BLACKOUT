@@ -35,6 +35,11 @@ async fn main() -> anyhow::Result<()> {
         .filter(|v| !v.is_empty())
         .unwrap_or_else(|| "mena_ai.db".to_string());
 
+    // Captured *before* `Connection::open`, which creates the file if absent —
+    // afterwards there is no way to tell a restored database from a brand-new
+    // one, and that distinction is the whole point of `report_persistence`.
+    let db_existed = std::path::Path::new(&db_path).exists();
+
     let conn = Connection::open(&db_path)
         .map_err(|e| anyhow::anyhow!("could not open database at `{db_path}`: {e}"))?;
     println!("DB at {db_path}");
@@ -43,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
     warn_missing_optional_tokens();
 
     let state: AppState = Arc::new(Mutex::new(conn));
+    report_persistence(&state, &db_path, db_existed);
 
     // The built SPA. Default is the repo layout relative to `backend/`, so a
     // local `npm run build` is served without configuration; in a container
@@ -131,13 +137,22 @@ async fn main() -> anyhow::Result<()> {
             get(api::country_scores::list_country_scores),
         )
         .route("/api/satellites", get(api::satellites::list_satellites))
+        // Before the `:norad_id` route is irrelevant to matching (the two have
+        // different segment counts), but it must come before `route_layer`
+        // below so the catalog Extension reaches it.
+        .route(
+            "/api/satellites/status",
+            get(api::satellites::satellites_status),
+        )
         .route(
             "/api/satellites/:norad_id/orbit",
             get(api::satellites::satellite_orbit),
         )
-        // Scoped to the two routes above (not the SPA fallback below) via
-        // `route_layer` — the satellites handlers take this instead of
-        // `State<AppState>`, since they have nothing to do with SQLite.
+        // Scoped to the satellite routes above (not the SPA fallback below)
+        // via `route_layer`. The position/orbit handlers take this *instead*
+        // of `State<AppState>`, since they have nothing to do with SQLite;
+        // `satellites_status` takes both, because half of what it reports is
+        // refresh history that only survives restarts by living in SQLite.
         .route_layer(Extension(satellite_catalog))
         .route(
             "/api/http-protocol-share",
@@ -164,6 +179,54 @@ async fn main() -> anyhow::Result<()> {
     println!("Listening on 0.0.0.0:{port} (app + API, public read-only)");
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+/// Says plainly, at boot, whether the satellite catalog survived.
+///
+/// This exists because the single most damaging failure mode in this
+/// deployment is silent: if `DATABASE_PATH` is not actually on a persistent
+/// volume, every redeploy starts from an empty database and the satellite
+/// catalog has to be rebuilt from scratch — which, during a CelesTrak outage,
+/// means it comes back as a fraction of its real size. The old log line
+/// ("DB at /data/mena_ai.db") looked identical either way.
+///
+/// The boot counter in `satellite_refresh_state` is what makes the two cases
+/// distinguishable: it can only be absent on a database no process has ever
+/// booted against. A second boot reporting #1 means the file this process
+/// opened is not the file the last one wrote.
+fn report_persistence(state: &AppState, db_path: &str, db_existed: bool) {
+    let boot = match db::satellite_catalog::record_boot(state) {
+        Ok(n) => n,
+        Err(e) => {
+            eprintln!("WARNING: could not record the boot marker: {e:#}");
+            return;
+        }
+    };
+    let satellites = state
+        .lock()
+        .ok()
+        .and_then(|conn| db::satellite_catalog::count(&conn).ok())
+        .unwrap_or(0);
+
+    if db_existed && boot > 1 {
+        println!(
+            "DB restored: existing database at {db_path} (boot #{boot}), \
+             {satellites} satellite(s) in the persistent catalog"
+        );
+        return;
+    }
+
+    eprintln!("WARNING: DB at {db_path} has no previous state (boot #{boot}).");
+    eprintln!(
+        "WARNING: that is expected on a first-ever deployment, and a problem on any other — \
+         it means the previous deployment's data is gone."
+    );
+    eprintln!(
+        "WARNING: on Railway, a volume must be mounted at the directory holding DATABASE_PATH \
+         (/data by default). Volumes cannot be declared in railway.json; create it in the \
+         service's Settings -> Volumes. Without one, /data is part of the container filesystem \
+         and every redeploy starts empty."
+    );
 }
 
 /// `ServeDir` for the built SPA, falling back to `index.html` so client-side

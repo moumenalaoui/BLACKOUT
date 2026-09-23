@@ -438,6 +438,59 @@ pub fn create_tables(conn: &Connection) -> Result<()> {
             PRIMARY KEY (source_group, norad_id)
         );
 
+        -- The canonical satellite catalog: one row per NORAD ID, and the
+        -- authoritative answer to which satellites we know about.
+        --
+        -- This table replaced an earlier `satellite_elements` design keyed on
+        -- (source_group, norad_id), which made *catalog membership* a property
+        -- of the last response from each upstream group. That is what allowed
+        -- a single truncated `active` response (1,500 objects instead of
+        -- ~11,000) to silently delete ~9,500 satellites: the group's rows were
+        -- replaced wholesale, so anything missing from that one response was
+        -- gone from both memory and disk. Keying on norad_id alone makes
+        -- membership additive — a refresh is an UPDATE to what we know, never
+        -- a replacement of it — so an object can only leave this table via a
+        -- deliberate retention policy, never as a side effect of a timeout.
+        --
+        -- `epoch` is the element set's own upstream epoch and is the primary
+        -- merge key (see satellites::Source::rank); `source_rank` breaks ties.
+        -- `last_updated` is when *we* last accepted better elements for this
+        -- object, and `last_seen` is when any source last listed it at all —
+        -- freshness and existence are tracked separately on purpose, so a
+        -- stale object stays visible and simply reports itself as stale.
+        CREATE TABLE IF NOT EXISTS satellite_catalog (
+            norad_id      INTEGER PRIMARY KEY,
+            name          TEXT NOT NULL,
+            category      TEXT NOT NULL,
+            category_rank INTEGER NOT NULL,
+            elements_json TEXT NOT NULL,
+            source        TEXT NOT NULL,
+            source_rank   INTEGER NOT NULL,
+            epoch         TEXT NOT NULL,
+            first_seen    TEXT NOT NULL,
+            last_updated  TEXT NOT NULL,
+            last_seen     TEXT NOT NULL
+        );
+
+        -- Small key/value sidecar for the satellite refresh loop's own
+        -- bookkeeping: last successful refresh, last per-provider success,
+        -- last known-good per-group member counts (the shrinkage guard's
+        -- baseline), and the boot marker that tells a genuinely-first
+        -- deployment apart from one whose persistent volume went missing.
+        --
+        -- All of it has to survive a process restart, because every one of
+        -- those facts exists to stop the next boot from doing something
+        -- destructive or wasteful (re-downloading a catalog that is still
+        -- fresh, or trusting a partial response because nothing remembers how
+        -- large the group used to be). Kept as key/value rather than columns
+        -- because the set of keys grows with the number of providers/groups,
+        -- which is configuration, not schema.
+        CREATE TABLE IF NOT EXISTS satellite_refresh_state (
+            key        TEXT PRIMARY KEY,
+            value      TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
         -- ── Indexes ──────────────────────────────────────────────────────
         --
         -- tor_metrics is keyed on a synthetic `id` ('{country}-{date}'), so
