@@ -1,7 +1,24 @@
 use crate::satellites::{CachedSatellite, SatelliteCatalog};
 use anyhow::Result;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::time::Duration;
+
+// A descriptive UA rather than reqwest's bare default. CelesTrak and SatNOGS
+// are both free services a single maintainer or small nonprofit runs for the
+// community — identifying this client honestly costs nothing. (Note what
+// this deliberately is *not*: some reference implementations of this same
+// feature spoof randomized browser user-agents and fake residential
+// `X-Forwarded-For` IPs to look like distinct real users rather than one
+// client — that's misrepresentation to dodge a provider's own rate limiting,
+// not identification, and it wouldn't even address the failure mode we've
+// actually seen, which is a connection that never completes at the TCP
+// level, before any header is sent.)
+const CLIENT_USER_AGENT: &str = concat!(
+    "blackout-satellite-tracker/",
+    env!("CARGO_PKG_VERSION"),
+    " (+https://github.com/moumenalaoui/globe)"
+);
 
 // CelesTrak's modern GP data endpoint. `FORMAT` must be given explicitly —
 // CSV became the default response format (2026-05-09) when it's omitted.
@@ -13,6 +30,30 @@ const GP_ENDPOINT: &str = "https://celestrak.org/NORAD/elements/gp.php";
 // same NORAD catalog numbers as the general GP catalog, so it can override a
 // general-GP record for the same object rather than being a separate object.
 const SUPPLEMENTAL_ENDPOINT: &str = "https://celestrak.org/NORAD/elements/supplemental/sup-gp.php";
+
+// SatNOGS' own TLE catalogue (a few thousand actively-tracked objects, mostly
+// amateur/cubesat, re-published from Space-Track like CelesTrak's own data)
+// — a second, independently-hosted source. CelesTrak has been observed
+// completely unreachable (TCP connect timeouts, not its documented 403
+// rate-limit) from at least one cloud network path, with no ETA on when or
+// whether that clears; this is the floor that keeps the panel showing real,
+// current satellites instead of nothing while that's the case.
+const SATNOGS_ENDPOINT: &str = "https://db.satnogs.org/api/tle/?format=json";
+
+// Below this many total cached CelesTrak+supplemental elements, the sweep is
+// too degraded to rely on alone — fetch SatNOGS too. On a healthy cycle
+// CelesTrak's own tens of thousands of objects make this redundant, so it's
+// deliberately conditional rather than fetched every cycle regardless.
+// Matches the threshold the reference implementation this feature was built
+// to improve on (OSIRIS) already uses for the same reason.
+const SATNOGS_FALLBACK_THRESHOLD: usize = 500;
+
+// Reserved `SourceCache.groups` key for the SatNOGS fallback data. Not a real
+// CelesTrak GROUP name — just reusing the same cache/persistence machinery
+// (`groups_from_cache` only reads keys present in `configured_groups()`, so
+// this sits inertly there until `with_satnogs_fallback` looks it up
+// directly) so it survives restarts exactly like every other source.
+const SATNOGS_CACHE_KEY: &str = "__satnogs_fallback__";
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 // CelesTrak's own data only updates roughly every 2 hours and firmly
@@ -138,6 +179,21 @@ fn build_objects(merged: Vec<(u64, String, sgp4::Elements)>) -> Vec<CachedSatell
     objects
 }
 
+/// Appends the cached SatNOGS fallback bucket (if any) to `groups`, tagged
+/// `"other"` at lowest precedence — a real CelesTrak-tagged object for the
+/// same NORAD ID still wins its richer category, since `merge_sources` keeps
+/// the first entry it sees per ID. Shared by a live fetch cycle and by
+/// `restore_from_disk`'s startup load so both apply it identically.
+fn with_satnogs_fallback(
+    mut groups: Vec<(String, Vec<sgp4::Elements>)>,
+    cache: &SourceCache,
+) -> Vec<(String, Vec<sgp4::Elements>)> {
+    if let Some(fallback) = cache.groups.get(SATNOGS_CACHE_KEY) {
+        groups.push(("other".to_string(), fallback.clone()));
+    }
+    groups
+}
+
 /// Refetches every configured source and merges whatever's now available
 /// (freshly fetched this cycle, or `cache`'s last-known-good for any source
 /// that failed) into the catalog. Only errors out — leaving the catalog
@@ -152,6 +208,7 @@ async fn fetch_and_store(
 ) -> Result<()> {
     let client = reqwest::Client::builder()
         .timeout(REQUEST_TIMEOUT)
+        .user_agent(CLIENT_USER_AGENT)
         .build()?;
 
     let groups_config = configured_groups();
@@ -185,6 +242,33 @@ async fn fetch_and_store(
     }
 
     let groups = groups_from_cache(&groups_config, cache);
+    let celestrak_total = total_cached_elements(&groups, &cache.supplemental);
+
+    if celestrak_total < SATNOGS_FALLBACK_THRESHOLD {
+        match fetch_satnogs_fallback(&client).await {
+            Ok(elements) => {
+                println!(
+                    "satellites: celestrak sweep yielded only {celestrak_total} object(s), \
+                     falling back to {} from SatNOGS",
+                    elements.len()
+                );
+                cache.groups.insert(SATNOGS_CACHE_KEY.to_string(), elements);
+            }
+            Err(e) => {
+                any_failed = true;
+                eprintln!(
+                    "satellites: satnogs fallback fetch failed this cycle, reusing its previous \
+                     data if any: {e:#}"
+                );
+            }
+        }
+    }
+    let groups = if celestrak_total < SATNOGS_FALLBACK_THRESHOLD {
+        with_satnogs_fallback(groups, cache)
+    } else {
+        groups
+    };
+
     if total_cached_elements(&groups, &cache.supplemental) == 0 {
         anyhow::bail!("no satellite data available yet from any source");
     }
@@ -250,6 +334,12 @@ fn restore_from_disk(catalog: &SatelliteCatalog, cache: &mut SourceCache, state:
 
     let groups_config = configured_groups();
     let groups = groups_from_cache(&groups_config, cache);
+    let celestrak_total = total_cached_elements(&groups, &cache.supplemental);
+    let groups = if celestrak_total < SATNOGS_FALLBACK_THRESHOLD {
+        with_satnogs_fallback(groups, cache)
+    } else {
+        groups
+    };
     if total_cached_elements(&groups, &cache.supplemental) == 0 {
         return;
     }
@@ -374,6 +464,46 @@ async fn fetch_starlink_supplemental(client: &reqwest::Client) -> Result<Vec<sgp
         .send()
         .await?;
     reject_or_parse(resp).await
+}
+
+/// One row of SatNOGS' TLE API — classic 3-line TLE fields as JSON. `tle0`
+/// keeps the "0 " name-line prefix verbatim, same as the raw 3-line format.
+#[derive(Debug, Deserialize)]
+struct SatNogsRecord {
+    tle0: String,
+    tle1: String,
+    tle2: String,
+}
+
+/// Fetches SatNOGS' independently-hosted TLE catalogue — see
+/// `SATNOGS_ENDPOINT`'s doc comment for why this exists. A record with
+/// malformed TLE lines is skipped and logged rather than failing the whole
+/// fetch, matching how `build_objects` already treats one bad element set.
+async fn fetch_satnogs_fallback(client: &reqwest::Client) -> Result<Vec<sgp4::Elements>> {
+    let resp = client
+        .get(SATNOGS_ENDPOINT)
+        .send()
+        .await?
+        .error_for_status()?;
+    let records: Vec<SatNogsRecord> = resp.json().await?;
+
+    let mut elements = Vec::with_capacity(records.len());
+    let mut skipped = 0usize;
+    for r in records {
+        let name = r.tle0.trim_start_matches("0 ").trim().to_string();
+        match sgp4::Elements::from_tle(Some(name), r.tle1.trim().as_bytes(), r.tle2.trim().as_bytes())
+        {
+            Ok(el) => elements.push(el),
+            Err(e) => {
+                skipped += 1;
+                let _ = e; // sgp4's TLE parse error isn't worth its own line per record
+            }
+        }
+    }
+    if skipped > 0 {
+        eprintln!("satellites: satnogs fallback skipped {skipped} record(s) with unparseable TLE lines");
+    }
+    Ok(elements)
 }
 
 /// CelesTrak returns HTTP 403 with a "GP data has not updated since your last

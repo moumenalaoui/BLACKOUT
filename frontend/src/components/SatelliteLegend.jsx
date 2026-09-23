@@ -1,4 +1,4 @@
-import { AMBER, BORDER, CRIMSON, HIGHLIGHT, MONO, MUTED, SIDEBAR, WHITE } from '../theme'
+import { BORDER, HIGHLIGHT, MONO, MUTED, SIDEBAR, WHITE } from '../theme'
 
 // Single source of truth for the satellite category taxonomy — the backend
 // tags each object with one of these keys (see backend/src/fetchers/
@@ -27,28 +27,6 @@ export const CATEGORY_COLOR_HEX = {
   stations: '#a78bfa', // violet — space science
   geo: '#94a3b8', // slate — background-only
   other: '#64748b', // darker slate — background-only
-}
-
-// `stale` means either the catalog hasn't refreshed in a while or the poll
-// itself is failing (see App.jsx's SATELLITE_STALE_AFTER_MS/_FAILURES) — the
-// legend and globe keep showing the last-known positions either way, so this
-// is the only thing that tells a viewer they're looking at old data rather
-// than a healthy empty result.
-function FreshnessBadge({ stale, updatedAt }) {
-  if (!stale) return null
-  const neverUpdated = !updatedAt
-  const color = neverUpdated ? CRIMSON : AMBER
-  const title = neverUpdated
-    ? 'No successful satellite fetch yet'
-    : `Showing last-known positions — catalog last refreshed ${new Date(updatedAt).toLocaleString()}`
-  return (
-    <span title={title} style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 6 }}>
-      <span style={{ width: 5, height: 5, borderRadius: '50%', background: color, flexShrink: 0 }} />
-      <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.08em', color }}>
-        {neverUpdated ? 'NO DATA' : 'STALE'}
-      </span>
-    </span>
-  )
 }
 
 function Row({ active, color, label, count, onClick }) {
@@ -106,7 +84,7 @@ function Row({ active, color, label, count, onClick }) {
 // total/category_counts) regardless of which row is currently selected/
 // fetched — so the whole list stays populated even while viewing one narrow
 // category.
-export default function SatelliteLegend({ selection, onSelect, counts, stale, updatedAt }) {
+export default function SatelliteLegend({ selection, onSelect, counts }) {
   return (
     <div
       style={{
@@ -133,11 +111,8 @@ export default function SatelliteLegend({ selection, onSelect, counts, stale, up
           marginBottom: 1,
         }}
       >
-        <span style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: WHITE }}>
-            SPACE TRACKING
-          </span>
-          <FreshnessBadge stale={stale} updatedAt={updatedAt} />
+        <span style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: WHITE }}>
+          SPACE TRACKING
         </span>
         <button
           type="button"
