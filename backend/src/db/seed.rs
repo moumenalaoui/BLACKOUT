@@ -6,7 +6,6 @@ use crate::models::{
     ixp::IxpStats,
     model_release::ModelRelease,
     signal::AdoptionSignal,
-    starlink_status::StarlinkStatus,
 };
 use anyhow::{Context, Result};
 use rusqlite::Connection;
@@ -43,7 +42,6 @@ pub fn load_all(conn: &Connection) -> Result<()> {
     conn.execute_batch("BEGIN;")?;
     let result = (|| {
         load_country_reference(conn)?;
-        load_starlink_status(conn)?;
         load_cable_routes(conn)?;
         load_cable_landing_points(conn)?;
         load_ixp_stats(conn)?;
@@ -96,30 +94,6 @@ fn load_country_reference(conn: &Connection) -> Result<()> {
                 r.bbox_max_lat,
                 r.include_on_globe as i64,
                 r.priority_tier,
-            ],
-        )?;
-    }
-    Ok(())
-}
-
-/// Hand-curated, not generated — `INSERT OR REPLACE` so re-editing this file
-/// and restarting actually takes effect, matching `country_reference`'s
-/// rationale (this data has no separate hand-vs-generated split to protect;
-/// the whole file *is* the hand edits).
-fn load_starlink_status(conn: &Connection) -> Result<()> {
-    let rows: Vec<StarlinkStatus> = read_seed("starlink_status.json")?;
-    for r in rows {
-        conn.execute(
-            "INSERT OR REPLACE INTO starlink_status VALUES (?1,?2,?3,?4,?5,?6)",
-            rusqlite::params![
-                r.country_code,
-                serde_json::to_string(&r.status)?
-                    .trim_matches('"')
-                    .to_string(),
-                r.confidence,
-                r.note,
-                r.source_note,
-                r.last_reviewed,
             ],
         )?;
     }

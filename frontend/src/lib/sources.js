@@ -10,10 +10,6 @@
 //   Structural / static:      PeeringDB (IXP density), TeleGeography
 //                             (submarine cables), CelesTrak (satellites)
 //
-// Deliberately excludes Starlink country status: that dataset is hand-curated
-// against multiple third-party roundups rather than pulled from one
-// attributable feed (see StarlinkBadge.jsx / data/seed/starlink_status.json),
-// so it cites its sources inline instead of claiming a spot in this list.
 // `url` is each source's own public homepage/dashboard, not the raw fetcher
 // endpoint (backend/src/fetchers/*.rs hits API routes under these same
 // domains — see there for the exact ones) — a reader clicking through wants a

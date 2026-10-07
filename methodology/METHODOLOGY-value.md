@@ -53,7 +53,7 @@ These are the kinds of signals BLACKOUT brings together: changes in traffic patt
 | Can people reach major AI services? | Whether the websites of OpenAI, Claude, DeepSeek, and Hugging Face are reachable from inside the country |
 | What kinds of content are being blocked? | Restrictions on news media, political content, human rights material, and other categories over the past six months |
 | Is the situation getting worse? | Ninety days of outage history and daily blocking records going back to January 2024 |
-| Could a shutdown here be enforced, or circumvented? | Submarine cable landings, domestic exchange points, and known restrictions on Starlink satellite service |
+| Could a shutdown here be enforced, or circumvented? | Submarine cable landings and domestic exchange points |
 | How does this country compare to others? | A Censorship Index covering about 180 countries, with its components shown alongside it |
 
 Three principles apply throughout:
@@ -133,7 +133,6 @@ The two are kept apart because **the disagreements between them are often the mo
 | PeeringDB | Domestic internet exchange points | Periodic reference data |
 | TeleGeography | Submarine cable routes and landing points | Periodic reference data |
 | CelesTrak / SatNOGS | Satellite positions | Continuously |
-| Compiled from public sources | Starlink restrictions by country | Maintained by hand; sources cited |
 
 ---
 

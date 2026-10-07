@@ -6,7 +6,6 @@ import Http3ShareChart from './Http3ShareChart'
 import MessagingStatus from './MessagingStatus'
 import OutageTimeline from './OutageTimeline'
 import ResilienceIndex from './ResilienceIndex'
-import StarlinkBadge from './StarlinkBadge'
 import IxpBadge from './IxpBadge'
 import TimelineChart from './TimelineChart'
 import TorChart from './TorChart'
@@ -15,8 +14,11 @@ import {
   BLOCKING_STATUS_COLOR,
   BLOCKING_STATUS_LABEL,
   GROUP_LABELS,
+  TECH_BLURBS,
+  TECH_LABELS,
   hasTimeline,
 } from '../lib/blockingRegistry'
+import CollapsibleSection from './CollapsibleSection'
 import { BORDER, BORDER_STRONG, MONO, MUTED, SANS, SIDEBAR, TYPE, WHITE } from '../theme'
 
 const ALL_TECHNOLOGIES = Object.values(BLOCKING_REGISTRY).flat()
@@ -45,8 +47,8 @@ function ThemeSection({ title, first, children }) {
         borderTop: first ? 'none' : `1px solid ${BORDER_STRONG}`,
       }}
     >
-      {/* Inter semibold, sentence case: the one level that isn't mono caps,
-          so a section title reads as a heading rather than as another of the
+      {/* Inter semibold, title case: the one level that isn't mono caps, so
+          a section title reads as a heading rather than as another of the
           per-widget labels beneath it (which differed only by colour). */}
       <div style={{ fontFamily: SANS, fontSize: TYPE.title, fontWeight: 600, color: WHITE }}>{title}</div>
       {children}
@@ -151,6 +153,27 @@ function BlockingGroupList({ groups, blockingByTech, timelineByTech, countryCode
   )
 }
 
+// What each circumvention row measures, collapsed by default. Only the
+// technologies actually listed for this country, so the key never explains a
+// row the reader can't see. A tap target rather than a hover tooltip, so it
+// works in the phone bottom sheet too.
+function TechKey({ techs }) {
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <CollapsibleSection title="WHAT THESE ARE">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {techs.map((tech) => (
+            <div key={tech}>
+              <div style={{ fontFamily: MONO, fontSize: TYPE.label, color: WHITE }}>{TECH_LABELS[tech] ?? tech}</div>
+              <div style={{ fontFamily: SANS, fontSize: TYPE.body, color: MUTED, lineHeight: 1.4 }}>{TECH_BLURBS[tech]}</div>
+            </div>
+          ))}
+        </div>
+      </CollapsibleSection>
+    </div>
+  )
+}
+
 function BlockingTechRow({ tech, row, countryCode, timelineRows }) {
   const status = row?.status ?? 'NO_DATA'
   const count = row?.measurement_count ?? 0
@@ -162,7 +185,9 @@ function BlockingTechRow({ tech, row, countryCode, timelineRows }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 22 }}>
-        <span style={{ fontFamily: MONO, fontSize: TYPE.label, color: WHITE, width: 96, flexShrink: 0 }}>{tech}</span>
+        <span style={{ fontFamily: MONO, fontSize: TYPE.label, color: WHITE, width: 96, flexShrink: 0 }}>
+          {TECH_LABELS[tech] ?? tech}
+        </span>
         <BlockSegments filledCount={filledCount} color={color} />
         <span style={{ fontFamily: MONO, fontSize: TYPE.label, color, width: 86, flexShrink: 0 }}>
           {BLOCKING_STATUS_LABEL[status]}
@@ -178,7 +203,7 @@ function BlockingTechRow({ tech, row, countryCode, timelineRows }) {
   )
 }
 
-export default function CountrySidebar({ country, layer, starlinkStatus, ixpStats, onClose, fill = false }) {
+export default function CountrySidebar({ country, layer, ixpStats, onClose, fill = false }) {
   const [blockingRows, setBlockingRows] = useState([])
   const [blockingLoading, setBlockingLoading] = useState(true)
   const [timelineByTech, setTimelineByTech] = useState({})
@@ -290,7 +315,7 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
         {/* Ordered for a policy reader: the headline freedom scores first,
             then what's blocked (messaging, AI, content, circumvention tools),
             and the technical network measurements last. */}
-        <ThemeSection title="Freedom & resilience" first>
+        <ThemeSection title="Freedom & Resilience" first>
           <GlobalIndices countryCode={country.country_code} />
 
           <ResilienceIndex countryCode={country.country_code} />
@@ -301,7 +326,7 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
         </ThemeSection>
 
         {showAiAccess && (
-          <ThemeSection title="AI access">
+          <ThemeSection title="AI Access">
             <div>
               <div style={{ fontFamily: MONO, fontSize: TYPE.label, letterSpacing: '0.06em', color: MUTED, marginBottom: 8 }}>
                 BLOCKING STATUS
@@ -331,6 +356,9 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
               <div style={{ fontFamily: MONO, fontSize: TYPE.label, letterSpacing: '0.06em', color: MUTED, marginBottom: 8 }}>
                 BLOCKING STATUS
               </div>
+              {circumventionGroups.length > 0 && (
+                <TechKey techs={circumventionGroups.flatMap(({ techs }) => techs).filter((tech) => TECH_BLURBS[tech])} />
+              )}
               {circumventionGroups.length > 0 ? (
                 <BlockingGroupList
                   groups={circumventionGroups}
@@ -354,7 +382,7 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
           <TorChart countryCode={country.country_code} />
         </ThemeSection>
 
-        <ThemeSection title="Network & protocol">
+        <ThemeSection title="Network & Protocol">
           <OutageTimeline countryCode={country.country_code} />
 
           <Http3ShareChart countryCode={country.country_code} />
@@ -362,8 +390,6 @@ export default function CountrySidebar({ country, layer, starlinkStatus, ixpStat
           <BgpVisibilityChart countryCode={country.country_code} />
 
           <IxpBadge entry={ixpStats} />
-
-          <StarlinkBadge entry={starlinkStatus} />
         </ThemeSection>
       </div>
     </div>

@@ -54,15 +54,6 @@ export async function getGeo() {
   return r.json()
 }
 
-// Hand-curated Starlink legal/regulatory status per country (~25 rows, not a
-// live feed — see backend/data/seed/starlink_status.json). Fetched once, like
-// getGeo(); absence of a country in the list means no known restriction.
-export async function getStarlinkStatus() {
-  const r = await fetch(`${BASE}/starlink-status`)
-  if (!r.ok) throw new Error('Failed to fetch Starlink status')
-  return r.json()
-}
-
 // Submarine cable routes + landing points from TeleGeography, generated once
 // by backend/scripts/gen_cable_data.mjs — static infrastructure data, not a
 // live feed. Fetched once regardless of the layer's toggle state, matching
@@ -75,7 +66,7 @@ export async function getCables() {
 
 // Per-country Internet Exchange Point density from PeeringDB, generated once
 // by backend/scripts/gen_ixp_data.mjs — static infrastructure data, not a
-// live feed. Fetched once on mount, like getStarlinkStatus()/getCables().
+// live feed. Fetched once on mount, like getCables().
 export async function getIxpStats() {
   const r = await fetch(`${BASE}/ixp-stats`)
   if (!r.ok) throw new Error('Failed to fetch IXP stats')

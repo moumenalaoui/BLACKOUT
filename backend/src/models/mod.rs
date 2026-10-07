@@ -14,6 +14,5 @@ pub mod model_release;
 pub mod outage_event;
 pub mod satellite;
 pub mod signal;
-pub mod starlink_status;
 pub mod technology_block;
 pub mod tor_metric;

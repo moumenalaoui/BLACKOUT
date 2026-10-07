@@ -18,6 +18,5 @@ pub mod outages;
 pub mod rankings;
 pub mod satellites;
 pub mod signals;
-pub mod starlink_status;
 pub mod timeline;
 pub mod tor_metrics;
