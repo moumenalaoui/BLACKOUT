@@ -18,6 +18,7 @@ import {
   TECH_LABELS,
   hasTimeline,
 } from '../lib/blockingRegistry'
+import { FREEDOM_KEY, NETWORK_KEY, TOR_CHART_KEY } from '../lib/sectionKeys'
 import CollapsibleSection from './CollapsibleSection'
 import { BORDER, BORDER_STRONG, MONO, MUTED, SANS, SIDEBAR, TYPE, WHITE } from '../theme'
 
@@ -35,7 +36,11 @@ const ALL_TECHNOLOGIES = Object.values(BLOCKING_REGISTRY).flat()
 // so the same 16px gap reads as "loose" after one widget and "cramped" after
 // another. Padding both sides guarantees a fixed quiet zone around the line
 // itself, independent of what content sits on either side of it.
-function ThemeSection({ title, first, children }) {
+//
+// `keyEntries` adds a collapsed "WHAT THESE ARE" key under the title, held
+// close to it (8px, not the 18px between widgets) so it reads as part of the
+// heading rather than as another widget.
+function ThemeSection({ title, first, keyEntries, children }) {
   return (
     <section
       style={{
@@ -47,12 +52,32 @@ function ThemeSection({ title, first, children }) {
         borderTop: first ? 'none' : `1px solid ${BORDER_STRONG}`,
       }}
     >
-      {/* Inter semibold, title case: the one level that isn't mono caps, so
-          a section title reads as a heading rather than as another of the
-          per-widget labels beneath it (which differed only by colour). */}
-      <div style={{ fontFamily: SANS, fontSize: TYPE.title, fontWeight: 600, color: WHITE }}>{title}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Inter semibold, title case: the one level that isn't mono caps, so
+            a section title reads as a heading rather than as another of the
+            per-widget labels beneath it (which differed only by colour). */}
+        <div style={{ fontFamily: SANS, fontSize: TYPE.title, fontWeight: 600, color: WHITE }}>{title}</div>
+        {keyEntries?.length > 0 && <SectionKey entries={keyEntries} />}
+      </div>
       {children}
     </section>
+  )
+}
+
+// What a section's terms mean, collapsed by default. A tap target rather
+// than a hover tooltip, so it works in the phone bottom sheet too.
+function SectionKey({ entries }) {
+  return (
+    <CollapsibleSection title="WHAT THESE ARE">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {entries.map(({ term, blurb }) => (
+          <div key={term}>
+            <div style={{ fontFamily: MONO, fontSize: TYPE.label, color: WHITE }}>{term}</div>
+            <div style={{ fontFamily: SANS, fontSize: TYPE.body, color: MUTED, lineHeight: 1.4 }}>{blurb}</div>
+          </div>
+        ))}
+      </div>
+    </CollapsibleSection>
   )
 }
 
@@ -149,28 +174,11 @@ function BlockingGroupList({ groups, blockingByTech, timelineByTech, countryCode
           ))}
         </div>
       ))}
+      {/* The row's bar and trailing number are otherwise unlabelled. */}
+      <p style={{ fontFamily: MONO, fontSize: TYPE.tick, color: MUTED, letterSpacing: '0.05em' }}>
+        Bar: share of OONI tests showing anomalies (possible blocking) · number: tests run
+      </p>
     </>
-  )
-}
-
-// What each circumvention row measures, collapsed by default. Only the
-// technologies actually listed for this country, so the key never explains a
-// row the reader can't see. A tap target rather than a hover tooltip, so it
-// works in the phone bottom sheet too.
-function TechKey({ techs }) {
-  return (
-    <div style={{ marginBottom: 8 }}>
-      <CollapsibleSection title="WHAT THESE ARE">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {techs.map((tech) => (
-            <div key={tech}>
-              <div style={{ fontFamily: MONO, fontSize: TYPE.label, color: WHITE }}>{TECH_LABELS[tech] ?? tech}</div>
-              <div style={{ fontFamily: SANS, fontSize: TYPE.body, color: MUTED, lineHeight: 1.4 }}>{TECH_BLURBS[tech]}</div>
-            </div>
-          ))}
-        </div>
-      </CollapsibleSection>
-    </div>
   )
 }
 
@@ -270,6 +278,15 @@ export default function CountrySidebar({ country, layer, ixpStats, onClose, fill
 
   const aiAccessGroups = visibleGroups.filter(({ group }) => group === 'AI_ACCESS')
   const circumventionGroups = visibleGroups.filter(({ group }) => group === 'CIRCUMVENTION')
+  // Only the blocked tools actually listed for this country, so the key never
+  // explains a row the reader can't see; then the Tor chart's terms.
+  const circumventionKey = [
+    ...circumventionGroups
+      .flatMap(({ techs }) => techs)
+      .filter((tech) => TECH_BLURBS[tech])
+      .map((tech) => ({ term: TECH_LABELS[tech] ?? tech, blurb: TECH_BLURBS[tech] })),
+    ...TOR_CHART_KEY,
+  ]
 
   // A row is only considered settled once BOTH fetches are in: `isMeaningful`
   // promotes a technology on either a point-in-time classification or a
@@ -315,7 +332,7 @@ export default function CountrySidebar({ country, layer, ixpStats, onClose, fill
         {/* Ordered for a policy reader: the headline freedom scores first,
             then what's blocked (messaging, AI, content, circumvention tools),
             and the technical network measurements last. */}
-        <ThemeSection title="Freedom & Resilience" first>
+        <ThemeSection title="Freedom & Resilience" first keyEntries={FREEDOM_KEY}>
           <GlobalIndices countryCode={country.country_code} />
 
           <ResilienceIndex countryCode={country.country_code} />
@@ -350,15 +367,12 @@ export default function CountrySidebar({ country, layer, ixpStats, onClose, fill
           <CategoryBreakdown countryCode={country.country_code} />
         </ThemeSection>
 
-        <ThemeSection title="Circumvention">
+        <ThemeSection title="Circumvention" keyEntries={circumventionKey}>
           {showCircumvention && (
             <div>
               <div style={{ fontFamily: MONO, fontSize: TYPE.label, letterSpacing: '0.06em', color: MUTED, marginBottom: 8 }}>
                 BLOCKING STATUS
               </div>
-              {circumventionGroups.length > 0 && (
-                <TechKey techs={circumventionGroups.flatMap(({ techs }) => techs).filter((tech) => TECH_BLURBS[tech])} />
-              )}
               {circumventionGroups.length > 0 ? (
                 <BlockingGroupList
                   groups={circumventionGroups}
@@ -382,7 +396,7 @@ export default function CountrySidebar({ country, layer, ixpStats, onClose, fill
           <TorChart countryCode={country.country_code} />
         </ThemeSection>
 
-        <ThemeSection title="Network & Protocol">
+        <ThemeSection title="Network & Protocol" keyEntries={NETWORK_KEY}>
           <OutageTimeline countryCode={country.country_code} />
 
           <Http3ShareChart countryCode={country.country_code} />
