@@ -8,6 +8,7 @@ import SatelliteLegend from './components/SatelliteLegend'
 import SatelliteCard from './components/SatelliteCard'
 import CommandBar from './components/CommandBar'
 import { DockColumn, DockPanel } from './components/DockPanels'
+import IntroCard from './components/IntroCard'
 import StatusBar from './components/StatusBar'
 import { buildBlockingMap } from './lib/blockingRegistry'
 import {
@@ -21,7 +22,6 @@ import {
   getOutages,
   getSatellites,
   getSatelliteOrbit,
-  getStarlinkStatus,
 } from './lib/api'
 import { BASE, BORDER, CRIMSON, MONO, MUTED, SIDEBAR, TYPE } from './theme'
 import './App.css'
@@ -95,6 +95,14 @@ export default function App() {
       narrow ? { ranking: false, outages: false, satellites: false, [id]: !p[id] } : { ...p, [id]: !p[id] },
     )
   const closePanel = (id) => setOpenPanels((p) => ({ ...p, [id]: false }))
+  // The first-visit explainer (IntroCard): retired for the session by its
+  // close control or by the first country selection — including a /country/XX
+  // link landed on directly — so it doesn't come back each time the sidebar
+  // closes.
+  const [introDismissed, setIntroDismissed] = useState(false)
+  useEffect(() => {
+    if (selectedCode) setIntroDismissed(true)
+  }, [selectedCode])
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [selectionError, setSelectionError] = useState('')
   const [globeError, setGlobeError] = useState('')
@@ -106,9 +114,6 @@ export default function App() {
   const [layer] = useState('ALL')
   const [geo, setGeo] = useState([])
   const [outages, setOutages] = useState([])
-  // Hand-curated Starlink legal/regulatory status per country (not a live
-  // feed) — fetched once, indexed by country_code below.
-  const [starlinkStatus, setStarlinkStatus] = useState([])
   // Submarine cable routes + landing points (static, fetched once regardless
   // of toggle state — see getCables()'s doc comment) and its own binary
   // show/hide, default off since it's decorative infrastructure context, not
@@ -116,7 +121,7 @@ export default function App() {
   const [cables, setCables] = useState({ routes: [], landing_points: [] })
   const [showCables, setShowCables] = useState(false)
   // Per-country Internet Exchange Point density (not a live feed — see
-  // getIxpStats()'s doc comment). Fetched once, same shape as starlinkStatus.
+  // getIxpStats()'s doc comment). Fetched once, indexed by country_code below.
   const [ixpStats, setIxpStats] = useState([])
   // Composite censorship index (code -> 0–100) driving the globe choropleth,
   // plus its on/off toggle (default on).
@@ -127,9 +132,15 @@ export default function App() {
   // SPACE_TRACKING_OPTIONS), live per-category counts, and the currently-
   // selected satellite's orbit path. Defaults to 'none': 17k dots on first
   // load buried the censorship shading — the actual story — under a satellite
-  // tracker. The layer is one click away in the SATELLITES panel.
+  // tracker. Opening the SATELLITES panel switches it to 'all' (see below).
   const [satellites, setSatellites] = useState([])
   const [spaceTrackingSelection, setSpaceTrackingSelection] = useState('none')
+  // Opening the SATELLITES panel is asking to see satellites, so it starts on
+  // ALL rather than on NONE with nothing drawn. Only from 'none': a category
+  // chosen before the panel was closed is kept when it reopens.
+  useEffect(() => {
+    if (openPanels.satellites) setSpaceTrackingSelection((s) => (s === 'none' ? 'all' : s))
+  }, [openPanels.satellites])
   const [spaceTrackingCounts, setSpaceTrackingCounts] = useState({})
   // Read by the satellite effect without making counts one of its deps.
   const spaceTrackingCountsRef = useRef(spaceTrackingCounts)
@@ -241,29 +252,6 @@ export default function App() {
     [geo],
   )
 
-  // Starlink status: fetched once, same shape as getGeo() above. Non-fatal —
-  // on failure the sidebar simply shows no badge for any country.
-  useEffect(() => {
-    let cancelled = false
-
-    getStarlinkStatus()
-      .then((rows) => {
-        if (!cancelled) setStarlinkStatus(rows)
-      })
-      .catch(() => {
-        if (!cancelled) setStarlinkStatus([])
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const starlinkByCode = useMemo(
-    () => Object.fromEntries(starlinkStatus.map((s) => [s.country_code, s])),
-    [starlinkStatus],
-  )
-
   // Submarine cables: fetched once, same non-fatal shape as getGeo() above.
   useEffect(() => {
     let cancelled = false
@@ -281,7 +269,7 @@ export default function App() {
     }
   }, [])
 
-  // IXP density: fetched once, same non-fatal shape as getStarlinkStatus().
+  // IXP density: fetched once, same non-fatal shape as getCables() above.
   useEffect(() => {
     let cancelled = false
 
@@ -697,6 +685,13 @@ export default function App() {
             </div>
           )}
 
+          {/* Stands aside for any open panel (a left-dock column takes its
+              corner; on phones every panel opens full-width over it) and, on
+              phones, for the cable-count tab hanging off the header. */}
+          {!introDismissed && !selectedCode && !Object.values(openPanels).some(Boolean) && !(narrow && showCables) && (
+            <IntroCard narrow={narrow} onClose={() => setIntroDismissed(true)} />
+          )}
+
           {/* Dock panels: floating columns at the globe's left and right
               edges, like the panels before the dock (see DockColumn). */}
           {leftDockOpen && (
@@ -807,7 +802,6 @@ export default function App() {
               <CountrySidebar
                 country={sidebarCountry}
                 layer={layer}
-                starlinkStatus={starlinkByCode[sidebarCountry?.country_code]}
                 ixpStats={ixpByCode[sidebarCountry?.country_code]}
                 fill={narrow}
                 onClose={() => {

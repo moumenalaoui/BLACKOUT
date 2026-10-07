@@ -19,7 +19,6 @@ BLACKOUT is a read-only web app for exploring internet freedom, censorship, and 
   - HTTP/1.x, HTTP/2, and HTTP/3 traffic share
   - BGP visibility
   - Internet Exchange Point density
-  - Starlink restriction status
   - Internet Society Pulse resilience scores
   - V-Dem and RSF freedom scores
 - Shows a global "most censored countries" ranking panel and a footer with source links, link state, and data age.
@@ -72,7 +71,6 @@ This requires persistent storage; see [Deployment](#deployment).
 | PeeringDB | Seeded IXP density lookup |
 | TeleGeography | Seeded submarine cable routes and landing points |
 | CelesTrak | Satellite catalog and orbital elements |
-| Manual seed data | Starlink country restrictions |
 
 ## Running locally
 
@@ -138,7 +136,6 @@ The shipped app mounts these read-only routes:
 - `GET /api/censorship-index`
 - `GET /api/rankings`
 - `GET /api/country-scores`
-- `GET /api/starlink-status`
 - `GET /api/cables`
 - `GET /api/ixp-stats`
 - `GET /api/satellites`
@@ -275,5 +272,5 @@ happen and state is being lost. The `snapshot:` lines above it say why: no
 ## Notes
 
 - The deployment model is public and read-only. There is no auth layer.
-- Data freshness is mixed by design: some datasets are periodically fetched, some are committed seed files, and Starlink status is manually maintained.
+- Data freshness is mixed by design: some datasets are periodically fetched, and some are committed seed files.
 - Built by Moumen Alaoui at the FAI Hackathon 2026, from [moumenalaoui/BLACKOUT](https://github.com/moumenalaoui/BLACKOUT).

@@ -6,7 +6,6 @@ pub mod satellite_catalog;
 pub mod satellite_elements;
 pub mod schema;
 pub mod seed;
-pub mod starlink_status;
 
 use crate::AppState;
 use anyhow::{Result, bail};

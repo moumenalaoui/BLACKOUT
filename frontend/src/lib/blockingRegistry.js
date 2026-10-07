@@ -6,8 +6,38 @@ export const BLOCKING_REGISTRY = {
 }
 
 export const GROUP_LABELS = {
-  AI_ACCESS: 'AI access',
+  AI_ACCESS: 'AI Access',
   CIRCUMVENTION: 'Circumvention',
+}
+
+// Reader-facing names for the technology keys above, which are OONI's own
+// identifiers (`torsf`, `i2p`) and mean nothing to a policy reader. A key
+// that is a web_connectivity probe against a URL is labelled with that
+// domain, so it reads as "does this website load" rather than "does this tool
+// work" — `signal` in particular is signal.org, while the Signal app itself
+// is measured under Messaging (see backend/src/fetchers/ooni.rs).
+export const TECH_LABELS = {
+  'openai.com': 'openai.com',
+  'claude.ai': 'claude.ai',
+  deepseek: 'deepseek.com',
+  huggingface: 'huggingface.co',
+  tor: 'Tor',
+  torsf: 'Tor (Snowflake)',
+  psiphon: 'Psiphon',
+  torproject: 'torproject.org',
+  i2p: 'geti2p.net',
+  signal: 'signal.org',
+}
+
+// One line per circumvention technology, for the key in the sidebar's
+// Circumvention section.
+export const TECH_BLURBS = {
+  tor: 'Whether a connection to the Tor anonymity network can be made.',
+  torsf: 'Tor routed through volunteer browser proxies, built for places that block Tor itself.',
+  psiphon: 'Whether the Psiphon circumvention app can connect.',
+  torproject: 'Whether the Tor Project’s website, where Tor is downloaded, loads.',
+  i2p: 'Whether the website of I2P, an anonymity network similar to Tor, loads.',
+  signal: 'Whether Signal’s website loads. Whether the Signal app itself works is shown under Messaging.',
 }
 
 export const BLOCKING_STATUS_COLOR = {

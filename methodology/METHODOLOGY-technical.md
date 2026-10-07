@@ -82,7 +82,7 @@ frequently polled endpoint, satellite positions, does not touch the database (§
 
 | Group | Tables | Written by |
 | --- | --- | --- |
-| Reference | `country_reference` (249), `starlink_status` (25), `cable_routes` (728), `cable_landing_points` (1,925), `ixp_stats` (170), `countries` (5 researched dossiers), `model_releases` (8) | seed loader, at boot |
+| Reference | `country_reference` (249), `cable_routes` (728), `cable_landing_points` (1,925), `ixp_stats` (170), `countries` (5 researched dossiers), `model_releases` (8) | seed loader, at boot |
 | Censorship | `technology_blocks`, `category_blocks`, `blocking_timeline`, `adoption_signals` | OONI, Cloudflare Radar |
 | Disruption and routing | `outage_events`, `http_protocol_share`, `bgp_prefix_visibility`, `tor_metrics` | IODA, Cloudflare Radar, RIPEstat, Tor Metrics |
 | Indices | `country_scores` | V-Dem, RSF, ISOC Pulse |
@@ -710,7 +710,7 @@ unauthenticated and read-only (`main.rs`).
 | `/health` | data freshness; 503 when stale (§3.2) |
 | `/api/countries`, `/api/countries/:code` | the five researched dossiers; 404 for a country without one |
 | `/api/geo` | reference rows for the globe (235; 249 with `?all`) |
-| `/api/starlink-status`, `/api/cables`, `/api/ixp-stats` | infrastructure reference data |
+| `/api/cables`, `/api/ixp-stats` | infrastructure reference data |
 | `/api/blocking`, `/api/categories`, `/api/timeline` | OONI results, by country and technology |
 | `/api/tor-metrics`, `/api/outages` | Tor series; IODA outages by country, or active globally |
 | `/api/http-protocol-share`, `/api/bgp-visibility` | per-country daily series, full accumulated history |
@@ -921,5 +921,5 @@ expected to do.
 - **Index comparability.** Composite scores are comparable only between countries with
   the same `component_count`, and component years can differ between countries (§4,
   §3.10).
-- **Reference data.** Seeded files (country geometry, cables, IXP counts, Starlink status)
-  change only when regenerated or edited by hand; Starlink status is curated manually.
+- **Reference data.** Seeded files (country geometry, cables, IXP counts) change only
+  when regenerated or edited by hand.
