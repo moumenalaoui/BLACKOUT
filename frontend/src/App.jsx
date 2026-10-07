@@ -132,9 +132,15 @@ export default function App() {
   // SPACE_TRACKING_OPTIONS), live per-category counts, and the currently-
   // selected satellite's orbit path. Defaults to 'none': 17k dots on first
   // load buried the censorship shading — the actual story — under a satellite
-  // tracker. The layer is one click away in the SATELLITES panel.
+  // tracker. Opening the SATELLITES panel switches it to 'all' (see below).
   const [satellites, setSatellites] = useState([])
   const [spaceTrackingSelection, setSpaceTrackingSelection] = useState('none')
+  // Opening the SATELLITES panel is asking to see satellites, so it starts on
+  // ALL rather than on NONE with nothing drawn. Only from 'none': a category
+  // chosen before the panel was closed is kept when it reopens.
+  useEffect(() => {
+    if (openPanels.satellites) setSpaceTrackingSelection((s) => (s === 'none' ? 'all' : s))
+  }, [openPanels.satellites])
   const [spaceTrackingCounts, setSpaceTrackingCounts] = useState({})
   // Read by the satellite effect without making counts one of its deps.
   const spaceTrackingCountsRef = useRef(spaceTrackingCounts)
