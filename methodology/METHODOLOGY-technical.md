@@ -48,10 +48,11 @@ the satellite element sets used for orbit propagation.
 ```
 
 There is no separate worker process, queue, cache tier or external database. The
-deployment runs on a two-vCPU Replit Reserved VM, chosen over Autoscale because the timer
-loops must keep running between requests. The repository also contains a
-deployment-assessment engine (`engine/`) that is compiled but not mounted; it is outside
-the scope of this document.
+deployment is a single always-on container on a small VPS (§10), not a scale-to-zero
+platform, because the timer loops must keep running between requests. The snapshot loop
+and shutdown hook in the diagram exist only on Replit, where the app previously ran
+(§6). The repository also contains a deployment-assessment engine (`engine/`) that is
+compiled but not mounted; it is outside the scope of this document.
 
 ### 1.1 Design principles
 
@@ -633,13 +634,18 @@ database.
 
 ## 6. Durability
 
-Replit rebuilds a published app's filesystem on every publish, and some of BLACKOUT's
-data cannot be fetched again. Three fetchers pull bounded rolling windows — IODA 90 days,
-RIPEstat 14 days, Cloudflare HTTP share 14 days — and never re-request older history, so
-what has accumulated beyond those windows exists only in the database. The satellite
-catalogue cannot be rebuilt on demand while CelesTrak is rate-limiting or unreachable.
-The snapshot layer (`snapshot/`) makes the database survive redeploys. It is inert unless
-`SNAPSHOT_KEY` is set and a Replit object-storage sidecar is found.
+Some of BLACKOUT's data cannot be fetched again. Three fetchers pull bounded rolling
+windows — IODA 90 days, RIPEstat 14 days, Cloudflare HTTP share 14 days — and never
+re-request older history, so what has accumulated beyond those windows exists only in the
+database. The satellite catalogue cannot be rebuilt on demand while CelesTrak is
+rate-limiting or unreachable.
+
+The database therefore lives on persistent storage: in the self-hosted deployment, a
+Docker named volume mounted at `/data`, which survives rebuilds, restarts and image
+updates. A platform that rebuilds the filesystem on every deploy needs more, and Replit,
+where the app previously ran, is one. For that case the snapshot layer (`snapshot/`)
+keeps a copy in Replit App Storage. It is inert unless `SNAPSHOT_KEY` is set and a Replit
+object-storage sidecar is found, and the rest of this section describes it.
 
 ### 6.1 Taking a snapshot
 
@@ -708,6 +714,7 @@ unauthenticated and read-only (`main.rs`).
 | Path | Returns |
 | --- | --- |
 | `/health` | data freshness; 503 when stale (§3.2) |
+| `/health/live` | liveness: 200 whenever the process is serving, for the container healthcheck |
 | `/api/countries`, `/api/countries/:code` | the five researched dossiers; 404 for a country without one |
 | `/api/geo` | reference rows for the globe (235; 249 with `?all`) |
 | `/api/cables`, `/api/ixp-stats` | infrastructure reference data |
@@ -729,8 +736,9 @@ A `CompressionLayer` (gzip, not brotli, whose cost is less predictable on two vC
 every route and the static bundle, which is 13.7 MB, mostly Cesium. It skips bodies under
 32 bytes and images other than SVG, and passes through the satellite response, which is
 already compressed. The static frontend is served by `ServeDir` with an `index.html`
-fallback, so deep links resolve to the app. There is no CORS layer, because the app and
-API share an origin. Logging is `println!`/`eprintln!` to standard output, with a
+fallback, so deep links resolve to the app. There is no CORS layer by default, because
+the app and API share an origin; `CORS_ALLOWED_ORIGINS` adds one, for GET and HEAD from
+the listed origins, when the frontend is hosted elsewhere. Logging is `println!`/`eprintln!` to standard output, with a
 `WARNING:` prefix for conditions that need attention.
 
 ---
@@ -848,29 +856,21 @@ The guarantees described in this document, and where each is enforced:
 
 ## 10. Build and deployment
 
-The build is defined in `.replit`:
+The build is a three-stage `Dockerfile`. Node 22 builds the frontend (`npm ci && npm run
+build`); Rust 1.91 builds the backend with `cargo build --release --locked`, compiling the
+dependencies against a stub binary first so that a source change does not rebuild them;
+and a `debian:bookworm-slim` runtime image receives only the binary, the seed files and
+the bundle, plus `ca-certificates`, `libssl3` (reqwest's native TLS links OpenSSL) and
+`curl` for the healthcheck. rusqlite compiles SQLite from source, and `flate2` and
+`comrak` are built without system libraries, so nothing further is installed. Both
+lockfiles are committed. The server runs as an unprivileged user.
 
-```sh
-rustup toolchain install 1.91.0 --profile minimal --no-self-update
-  && rustup default 1.91.0 && cargo --version
-  && cd frontend && npm ci && npm run build
-  && cd ../backend && cargo build --release --locked
-  && cd .. && mkdir -p bin && cp backend/target/release/backend bin/blackout
-  && test -x bin/blackout && test -f frontend/dist/index.html
-```
-
-The toolchain is pinned through `rustup` because the Nix channel's Cargo (1.77.1)
-predates the crate's `edition = "2024"`, and it installs first so a toolchain failure
-surfaces before the frontend build. The binary is copied into `bin/` because
-`backend/target/` is excluded from what the build stage hands to the run stage.
-`.replitignore` also excludes `*.db`, so a local database can never ship and take
-precedence over the stored snapshot. Both lockfiles are committed, and the backend builds
-with `--locked`.
-
-`replit.nix` provides `rustup`, `nodejs_22`, `pkg-config` and `openssl` (for reqwest's
-native TLS), `stdenv.cc` (rusqlite compiles SQLite from source) and `cacert`. The backend
-has fourteen runtime crates; `flate2` and `comrak` are built without system libraries, so
-nothing further needs installing.
+`docker-compose.yml` runs the image with the database on a named volume at `/data` and
+puts Caddy in front of it, which obtains and renews the TLS certificate and is the only
+service that publishes ports. The container healthcheck polls `/health/live`; `/health`
+stays the data-freshness check for external monitoring, since a 503 there is not
+something a restart would fix. The earlier Replit build (`.replit`, `replit.nix`) is still
+in the repository, but nothing depends on it.
 
 Configuration is by environment variable:
 
@@ -881,10 +881,12 @@ Configuration is by environment variable:
 | `CLOUDFLARE_API_TOKEN` | unset | Radar annotations and HTTP version share |
 | `PULSE_API_TOKEN` | unset | Internet Society Pulse resilience scores |
 | `PEERINGDB_API_KEY` | unset | generator script only |
-| `DATABASE_PATH` | `mena_ai.db` | SQLite location |
-| `SEED_DIR` | `data/seed` | seed files |
-| `STATIC_DIR` | `../frontend/dist` | frontend bundle |
-| `PORT` | `3001` | listener |
+| `DATABASE_PATH` | `mena_ai.db` | SQLite location; `/data/mena_ai.db` in the image |
+| `SEED_DIR` | `data/seed` | seed files; `/app/data/seed` in the image |
+| `STATIC_DIR` | `../frontend/dist` | frontend bundle; `/app/dist` in the image |
+| `BIND_ADDR` | `0.0.0.0` | listen address |
+| `PORT` | `3001` | listen port |
+| `CORS_ALLOWED_ORIGINS` | unset | cross-origin API access; comma-separated origins or `*` |
 | `HEALTH_MAX_AGE_DAYS` | `2` | `/health` staleness threshold |
 | `FETCH_INTERVAL_HOURS` | `6` | general loop |
 | `PRECISION_FETCH_INTERVAL_HOURS` | `1` | precision loop |
@@ -894,12 +896,14 @@ Configuration is by environment variable:
 | `SATELLITE_STALE_AFTER_HOURS` | `24` | staleness annotation |
 | `SATELLITE_MAX_PROPAGATION_AGE_DAYS` | `30` | propagation cutoff |
 | `SATELLITE_POSITION_CACHE_MS` | `1000` | position cache TTL; `0` disables |
-| `SNAPSHOT_KEY` | unset | enables the snapshot layer |
+| `SNAPSHOT_KEY` | unset | enables the snapshot layer (Replit only) |
 | `SNAPSHOT_INTERVAL_MINUTES` | `180` | snapshot interval, floored at 300 s |
 | `SNAPSHOT_MIN_RETAIN_RATIO` | `0.5` | snapshot shrinkage guard; values outside [0, 1] use the default |
 | `SNAPSHOT_SIDECAR_WAIT_SECS` | `10` | sidecar discovery budget; `0` means one attempt |
 | `RIPESTAT_SOURCEAPP` | derived | `blackout-<DEPLOYMENT_ID>` |
+| `VITE_API_BASE_URL` | empty | frontend, build time; API origin, empty = same origin |
 | `VITE_CESIUM_ION_TOKEN` | unset | frontend, build time; optional |
+| `DOMAIN`, `ACME_EMAIL` | required | Docker Compose only: Caddy's site and ACME contact |
 
 The app starts without any of the credentials. Missing `CLOUDFLARE_API_TOKEN` or
 `PULSE_API_TOKEN` is reported at boot, naming the data each one gates.

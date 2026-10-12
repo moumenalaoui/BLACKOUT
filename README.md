@@ -54,7 +54,7 @@ counted in `total`, but are left out of `/api/satellites` and their orbit
 endpoint returns 422 — SGP4 cannot produce a meaningful position from them,
 and a confidently-wrong dot is worse than no dot.
 
-This requires persistent storage; see [Deployment](#deployment).
+This requires persistent storage; see [Persistence](#persistence).
 
 ## Data sources
 
@@ -85,7 +85,9 @@ cargo run
 
 This creates `mena_ai.db`, loads the seed data, and starts the API immediately. External fetchers then populate and refresh the live datasets in the background.
 
-Useful optional env vars are documented in `backend/.env.example`, including:
+All configuration is documented in [`.env.example`](.env.example) at the repo
+root. Copy it to `.env`; the backend finds it from `backend/` (a `backend/.env`,
+if present, takes precedence). Useful optional variables include:
 
 - `DEPLOYMENT_ID`
 - `CLOUDFLARE_API_TOKEN`
@@ -99,7 +101,8 @@ Useful optional env vars are documented in `backend/.env.example`, including:
 - `SATELLITE_CATALOG_REFRESH_HOURS`
 - `SATELLITE_STALE_AFTER_HOURS`
 - `SATELLITE_GROUP_MIN_RETAIN_RATIO`
-- `PORT`
+- `BIND_ADDR` and `PORT` (default `0.0.0.0:3001`)
+- `CORS_ALLOWED_ORIGINS` (unset = same-origin only)
 
 ### 2. Frontend (`:5173`)
 
@@ -109,7 +112,7 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>. Vite proxies both `/api` and `/health` to `http://localhost:3001` in development. `VITE_CESIUM_ION_TOKEN` is optional; the current globe setup does not require it.
+Open <http://localhost:5173>. Vite proxies both `/api` and `/health` to `http://localhost:3001` in development (override with `DEV_API_PROXY_TARGET`). The frontend calls the API on its own origin unless `VITE_API_BASE_URL` is set at build time; `VITE_CESIUM_ION_TOKEN` is optional. See `frontend/.env.example`.
 
 ### 3. Production build
 
@@ -153,38 +156,67 @@ Notes:
 - `POST /api/evaluate` exists in code but is not mounted in the public read-only app.
 - `/api/models` and `/api/signals` are exposed by the backend but are not currently used by the shipped frontend.
 
-## Deployment
+## Self-hosting
 
-The app runs on Replit as a Reserved VM. There is no Dockerfile; the build and
-run contract lives in two files at the repo root:
+The production setup is Docker Compose: one app container (the Rust server
+plus the built SPA) behind [Caddy](https://caddyserver.com), which terminates
+TLS with automatically issued and renewed certificates. Nothing in it is tied
+to a hosting provider; any Linux VPS works.
 
-- `.replit` — build and run commands, `[deployment]`, port mapping, `[env]`
-- `replit.nix` — `rustup`, Node, OpenSSL, a C toolchain (for `rusqlite`'s
-  bundled SQLite) and `cacert`
+**Requirements**
 
-The Rust toolchain is pinned in `.replit`'s build command through `rustup`
-rather than taken from the Nix channel, whose Cargo is older than
-`edition = "2024"` requires. The build stage copies the release binary to
-`bin/` because `backend/target/` is excluded from what is handed to the run
-stage.
+- A Linux host with Docker Engine and the Compose v2 plugin
+  (`docker compose version`).
+- A domain whose A/AAAA record points at the host, with ports 80 and 443
+  (plus 443/UDP for HTTP/3) reachable from the internet.
+- About 4 GB of RAM for the first build, which compiles ~200 crates and SQLite
+  from source — add swap on a 2 GB machine. The running app needs far less.
 
-Reserved VM rather than Autoscale: the fetch loops (6h), precision loops (1h),
-satellite refresh (2h) and snapshot loop (3h) are timer-driven, and an
-Autoscale deployment scales to zero between requests and never runs them. The
-build links ~200 crates and compiles SQLite from C source, so it wants at
-least 2 vCPU / 4 GB. At runtime `/api/satellites` propagates every matching
-element set with SGP4 on each request, polled every 7s per connected browser.
+**Configure**
 
-Replit keeps workspace secrets and deployment secrets as separate sets. A key
-present only in the workspace is undefined in the published app, which is
-indistinguishable from a source genuinely having no data.
+```sh
+git clone https://github.com/moumenalaoui/globe.git blackout && cd blackout
+cp .env.example .env
+```
+
+In `.env`, set `DOMAIN` and `ACME_EMAIL` (required), a `DEPLOYMENT_ID`, and
+optionally `CLOUDFLARE_API_TOKEN` and `PULSE_API_TOKEN`. Every variable is
+documented in the file. `.env` is gitignored and never enters the image.
+
+**Run**
+
+```sh
+docker compose up -d
+```
+
+The first run builds the image, which takes several minutes. Then:
+
+- `docker compose ps` shows `app` as `healthy` once the server answers, and
+  Caddy starts after it.
+- `docker compose logs -f app` shows the boot log; the background fetchers
+  fill in the live datasets over the first few minutes.
+- `https://<DOMAIN>/health` reports data freshness (200 `ok`, 503 `stale`) —
+  point an external uptime monitor at it. `/health/live` is the container's
+  own liveness check.
+
+To update: `git pull && docker compose up -d --build`. The database lives on
+the `blackout-data` volume and survives rebuilds and restarts;
+`docker compose down -v` deletes it. For a consistent backup, stop the app
+briefly:
+
+```sh
+docker compose stop app
+docker run --rm -v blackout-data:/data -v "$PWD":/backup debian:bookworm-slim tar czf /backup/blackout-data.tgz -C /data .
+docker compose start app
+```
+
+## Deployment notes
 
 ### Persistence
 
-Publishing rebuilds the app's files from the workspace tree, so
-`DATABASE_PATH` does not survive a deploy. That is data loss rather than a
-cold cache: three fetchers pull bounded rolling windows and accumulate history
-locally that upstream will not return again.
+The SQLite database is state, not a cache: three fetchers pull bounded
+rolling windows and accumulate history locally that upstream will not return
+again.
 
 | Table | Window | Fetcher |
 | --- | --- | --- |
@@ -193,35 +225,35 @@ locally that upstream will not return again.
 | `http_protocol_share` | 14 days | `fetchers/cloudflare_http.rs` |
 
 That is on top of `satellite_catalog`, which cannot be rebuilt on demand at
-all.
+all. `DATABASE_PATH` must therefore be on persistent storage. In the Docker
+setup it is `/data/mena_ai.db` on the named volume `blackout-data`; the boot
+log says whether a previous database was found (see [Boot log](#boot-log)).
 
-The database is therefore snapshotted to Replit App Storage. `SNAPSHOT_KEY` in
-`.replit` enables the layer; with it unset the layer is inert, which is the
-local-development case. On boot, when `DATABASE_PATH` is absent, the stored
-snapshot is downloaded, verified and put in place before SQLite opens it. It
-is written back every `SNAPSHOT_INTERVAL_MINUTES` (default 180, and only when
-something has been written since the last one) and once more on `SIGTERM`. The
-shutdown snapshot is what makes an ordinary redeploy lossless; the interval
-bounds only what an unplanned crash costs.
+Runtime cost: `/api/satellites` propagates every matching element set with
+SGP4 on each request, polled every 7s per connected browser, and the fetch
+loops (6h), precision loops (1h) and satellite refresh (2h) run on timers in
+the same process — so the host must stay up, not scale to zero. Two vCPUs are
+plenty; `TOKIO_WORKER_THREADS` (default 8 in compose) keeps a slow SQLite
+request from stalling the rest.
 
-A snapshot is `VACUUM INTO` plus gzip — a consistent, defragmented image at
-roughly a quarter the size of the live file.
+### Replit (legacy)
 
-**This does not currently work on the deployment.** The App Storage sidecar
-answers on `127.0.0.1:1106` from the workspace but nothing listens there in
-the published container — observed over 7 attempts across 11.8s. Until that is
-resolved the app cold-starts on every publish: it is fully serving in under a
-second and fully current in about two and a half minutes, but history that
-upstream will not re-serve (outage events beyond 90 days, BGP and HTTP/3
-beyond 14) resets each time. A seeded snapshot is kept outside the repo ready
-to restore once it does work.
+`.replit`, `.replitignore` and `replit.nix` remain so the earlier Replit
+deployment still builds, but nothing depends on them: the server reads the
+same environment variables everywhere, and the Docker build ignores those
+files. Replit-specific behaviour is limited to `.replit`'s build command
+(a `rustup`-pinned toolchain, because the Nix channel's Cargo is older than
+`edition = "2024"`) and an optional snapshot layer in `backend/src/snapshot`.
 
-A failed restore never overwrites a good snapshot. When the download errors no
-snapshot task is spawned for that process, so no code path can write, and a
-`WARNING` block says so. A clean 404 — nothing stored yet — is deliberately a
-different outcome and does allow writes. A snapshot whose uncompressed size
-has collapsed below `SNAPSHOT_MIN_RETAIN_RATIO` (default 0.5) of the last good
-one is refused, on the same reasoning as the satellite shrinkage guard.
+Because a published Replit app's filesystem is rebuilt on every publish, that
+layer restores the database from Replit App Storage at boot and writes it back
+every `SNAPSHOT_INTERVAL_MINUTES` (default 180) and on `SIGTERM`. It is inert
+unless `SNAPSHOT_KEY` is set, which only `.replit` does. A failed restore never
+overwrites a good snapshot: when the download errors no snapshot task is
+spawned for that process, and a snapshot whose size collapses below
+`SNAPSHOT_MIN_RETAIN_RATIO` of the last good one is refused. In practice the
+App Storage sidecar was never reachable from the published container, so the
+Replit deployment cold-started on every publish.
 
 ### Outbound identity
 
@@ -256,18 +288,18 @@ without one.
 
 ### Boot log
 
-A healthy redeploy prints:
+A healthy restart prints:
 
 ```text
-snapshot: restored /home/runner/data/mena_ai.db from replit-objstore-.../mena_ai.db.gz (19.1 MiB compressed -> 84.0 MiB).
-DB restored: existing database at /home/runner/data/mena_ai.db (boot #3), 13587 satellite(s) in the persistent catalog
+DB at /data/mena_ai.db
+DB initialized and seeded.
+DB restored: existing database at /data/mena_ai.db (boot #3), 13587 satellite(s) in the persistent catalog
 satellites: loaded 13587 satellites from the persistent catalog; catalog age 47m
-Snapshot loop: every 180m -> replit-objstore-.../mena_ai.db.gz
+Listening on 0.0.0.0:3001 (app + API, public read-only)
 ```
 
-`boot #1` on anything other than a first-ever deploy means the restore did not
-happen and state is being lost. The `snapshot:` lines above it say why: no
-`SNAPSHOT_KEY`, no App Storage sidecar, or a failed download.
+`boot #1` on anything other than a first-ever start means the database was not
+carried over — check that `DATABASE_PATH` is on the mounted volume.
 
 ## Notes
 
