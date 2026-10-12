@@ -1,0 +1,17 @@
+# Reverse proxy for docker-compose.yml. DOMAIN and ACME_EMAIL come from .env.
+#
+# Caddy obtains and renews the TLS certificate for DOMAIN on its own (ports 80
+# and 443 must reach this host), redirects HTTP to HTTPS, and serves HTTP/3.
+# With DOMAIN=localhost it uses its internal CA instead, for local testing.
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	# No `encode`: the app already gzips its responses and serves precompressed
+	# bundle files, and Caddy would only re-check what is already compressed.
+	#
+	# No `log` either, deliberately: the privacy page promises that requests
+	# are not logged, and Caddy writes no access log unless told to.
+	reverse_proxy app:3001
+}

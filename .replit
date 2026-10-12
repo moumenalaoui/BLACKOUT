@@ -1,6 +1,6 @@
-# Replit app configuration. This is the whole build/run contract — Replit does
-# not read Dockerfiles, so everything the old three-stage image did is here or
-# in replit.nix.
+# Replit app configuration (legacy — the primary deployment is the Dockerfile
+# and docker-compose.yml; see README "Self-hosting"). Replit does not read the
+# Dockerfile, so its build/run contract is restated here and in replit.nix.
 #
 # Layout the env vars below must match exactly:
 #   frontend/dist                      the built SPA        -> STATIC_DIR
@@ -15,7 +15,7 @@
 # The database does NOT live on this filesystem in any durable sense. Replit
 # rebuilds a published app's files from the workspace tree on every publish,
 # so DATABASE_PATH survives only via the App Storage snapshot in
-# backend/src/snapshot. See README "Deployment (Replit)".
+# backend/src/snapshot. See README "Replit (legacy)".
 
 run = "./bin/blackout"
 build = "rustup toolchain install 1.91.0 --profile minimal --no-self-update && rustup default 1.91.0 && cargo --version && cd frontend && npm ci && npm run build && cd ../backend && cargo build --release --locked && cd .. && mkdir -p bin && cp backend/target/release/backend bin/blackout"

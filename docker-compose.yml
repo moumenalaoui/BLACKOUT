@@ -1,0 +1,85 @@
+# BLACKOUT behind Caddy, on any host with Docker Compose v2.
+#
+#   cp .env.example .env    # then set DOMAIN, ACME_EMAIL and any tokens
+#   docker compose up -d --build
+#
+# Only Caddy publishes ports. The app listens on 3001 inside the compose
+# network and is reachable solely through the reverse proxy. See README
+# "Self-hosting".
+
+services:
+  app:
+    build:
+      context: .
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+        VITE_CESIUM_ION_TOKEN: ${VITE_CESIUM_ION_TOKEN:-}
+    image: blackout:latest
+    restart: unless-stopped
+    # tini as PID 1, so `docker compose stop` / `down` deliver SIGTERM to the
+    # server and it exits at once instead of being killed after the timeout.
+    init: true
+    env_file: .env
+    # Pinned to the image layout and the volume below; `environment` wins over
+    # env_file, so a .env written for `cargo run` cannot point the database
+    # somewhere that is not persisted.
+    environment:
+      BIND_ADDR: 0.0.0.0
+      PORT: "3001"
+      DATABASE_PATH: /data/mena_ai.db
+      SEED_DIR: /app/data/seed
+      STATIC_DIR: /app/dist
+      TOKIO_WORKER_THREADS: ${TOKIO_WORKER_THREADS:-8}
+    volumes:
+      - blackout-data:/data
+    expose:
+      - "3001"
+    # Liveness: is the server answering HTTP. Data freshness is /health, which
+    # is meant for an external uptime monitor — it answers 503 until the first
+    # fetch lands and whenever upstreams are down, which a restart cannot fix.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3001/health/live"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env (see .env.example)}
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env (see .env.example)}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates and ACME account. Losing this volume means re-issuing,
+      # which Let's Encrypt rate-limits — keep it alongside blackout-data.
+      - caddy-data:/data
+      - caddy-config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  # Fixed names (not prefixed with the project directory) so backups and the
+  # README refer to the same thing wherever the repo is checked out.
+  blackout-data:
+    name: blackout-data
+  caddy-data:
+    name: blackout-caddy-data
+  caddy-config:
+    name: blackout-caddy-config
