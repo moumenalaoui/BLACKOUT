@@ -163,8 +163,8 @@ mod tests {
 
     #[test]
     fn sanitize_keeps_slug_characters_and_drops_everything_else() {
-        assert_eq!(sanitize("blackout-replit"), "blackout-replit");
-        assert_eq!(sanitize("blackout_replit.v2"), "blackout_replit.v2");
+        assert_eq!(sanitize("my-replit"), "my-replit");
+        assert_eq!(sanitize("my_replit.v2"), "my_replit.v2");
         // The cases that would break a HeaderValue or a query string.
         assert_eq!(sanitize("bad\nvalue"), "badvalue");
         assert_eq!(sanitize("a b&c=d"), "abcd");

@@ -12,7 +12,7 @@ body,
 
 body {
   margin: 0;
-  background: #060c13;
+  background: #080b11;
   color: #e6e9ef;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -40,7 +40,7 @@ p {
 /* Divider between panels stacked in one header-dock column (DockPanels.jsx).
    Hex mirrors the BORDER token in theme.js. */
 .dock-panel + .dock-panel {
-  border-top: 1px solid #0e243e;
+  border-top: 1px solid #1b2531;
 }
 
 /* Tabular numerals for data readouts (clock, counters, coordinates) so digits
@@ -55,7 +55,7 @@ p {
    outside the JS module). */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #0a3161 transparent;
+  scrollbar-color: #2b3a4b transparent;
 }
 
 ::-webkit-scrollbar {
@@ -68,9 +68,9 @@ p {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #0e243e;
+  background: #1b2531;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #0a3161;
+  background: #2b3a4b;
 }

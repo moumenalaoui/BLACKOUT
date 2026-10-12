@@ -70,7 +70,7 @@ externalPort = 80
 # `sourceapp`, so this deployment and the personal one are distinguishable in
 # an upstream's logs. Not a secret, and not a rate-limit knob — see
 # backend/src/util/http.rs for what it is and is not for.
-DEPLOYMENT_ID = "blackout-replit"
+DEPLOYMENT_ID = "replit"
 STATIC_DIR = "frontend/dist"
 # A wrong SEED_DIR is fatal, not degraded: seed::load_all's error propagates
 # through init_schema into main and the process exits, so a typo here is a

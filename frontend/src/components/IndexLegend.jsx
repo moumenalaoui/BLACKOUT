@@ -1,7 +1,7 @@
 import { BORDER, HIGHLIGHT, MONO, MUTED, SIDEBAR, TYPE, WHITE } from '../theme'
 
 // Matches the globe choropleth ramp in Globe.jsx (green → amber → crimson).
-const RAMP = 'linear-gradient(90deg, #6c9a5b 0%, #d97706 50%, #b31942 100%)'
+const RAMP = 'linear-gradient(90deg, #6c9a5b 0%, #d97706 50%, #c8102e 100%)'
 
 // Unpositioned on purpose — App.jsx renders this inside a centered bottom row,
 // so it centers regardless of its content-driven width.

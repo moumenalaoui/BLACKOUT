@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 // into two rows, dock panels open full-width one at a time, the country
 // sidebar becomes a bottom sheet and the legends and status bar compact.
 // Between that and full desktop (COMPACT_HEADER) only the header trims — its
-// counters and the full  lockup need ~1240px. Above, desktop is untouched.
+// counters need ~1240px. Above, desktop is untouched.
 // NARROW ends at 870px because the trimmed one-row header still needs ~863px;
 // portrait tablets up to that width get the stacked layout, which suits them.
 export const NARROW_QUERY = '(max-width: 870px)'

@@ -1,27 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { BLACK, BORDER, BORDER_STRONG, CRIMSON, HIGHLIGHT, MONO, MUTED, RAISED, SANS, SIDEBAR, TYPE, WHITE } from '../theme'
-import Logo from './Logo'
 import { COMPACT_HEADER_QUERY, useMediaQuery } from '../lib/useNarrow'
-
-// The  logo links to 's site, in a new tab like the source links in
-// the status bar, so the tool stays open behind it.
-const _URL = 'https://www./'
-
-function HeaderLink({ children }) {
-  return (
-    <a
-      href={_URL}
-      target="_blank"
-      rel="noreferrer noopener"
-      className="blackout-link"
-      aria-label=" (opens )"
-      title=""
-      style={{ display: 'flex', flexShrink: 0 }}
-    >
-      {children}
-    </a>
-  )
-}
 
 const Divider = () => <span style={{ width: 1, height: 22, background: BORDER, flexShrink: 0 }} />
 
@@ -261,8 +240,7 @@ function DockItem({ id, label, title, badge, badgeColor, pulse, open, onToggle, 
 // starts clean.
 export default function CommandBar({ countries, selectedCode, onSelectCountry, counts, openPanels, onTogglePanel, onCloseAll, cables, showCables, onToggleCables, narrow = false }) {
   const anyOpen = Object.values(openPanels).some(Boolean)
-  // Tablet widths: the full desktop row needs ~1240px, so drop the counters
-  // and show the  emblem instead of the full lockup.
+  // Tablet widths: the full desktop row needs ~1240px, so drop the counters.
   const compactHeader = useMediaQuery(COMPACT_HEADER_QUERY)
 
   // Escape closes every open panel. No click-outside close: the panels sit at
@@ -301,9 +279,9 @@ export default function CommandBar({ countries, selectedCode, onSelectCountry, c
     </>
   )
 
-  // Phone width: two rows — wordmark, search and the  emblem, then the
-  // dock buttons sharing the full width. The tagline, the counters and the
-  // full  lockup don't fit and are dropped.
+  // Phone width: two rows — wordmark and search, then the dock buttons
+  // sharing the full width. The tagline and the counters don't fit and are
+  // dropped.
   if (narrow) {
     return (
       <header
@@ -317,15 +295,12 @@ export default function CommandBar({ countries, selectedCode, onSelectCountry, c
           borderBottom: `1px solid ${BORDER}`,
         }}
       >
-        <style>{`@keyframes outagePulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } } .blackout-link:hover { opacity: 0.75 }`}</style>
+        <style>{`@keyframes outagePulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }`}</style>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: TYPE.title, letterSpacing: '0.08em', color: WHITE, flexShrink: 0 }}>
             BLACKOUT
           </span>
           <CountryPicker value={selectedCode} options={options} onChange={onSelectCountry} fluid />
-          <HeaderLink>
-            <Logo height={24} color={WHITE} markOnly />
-          </HeaderLink>
         </div>
         <div style={{ display: 'flex', gap: 6 }}>{dock}</div>
       </header>
@@ -345,7 +320,7 @@ export default function CommandBar({ countries, selectedCode, onSelectCountry, c
         borderBottom: `1px solid ${BORDER}`,
       }}
     >
-      <style>{`@keyframes outagePulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } } .blackout-link:hover { opacity: 0.75 }`}</style>
+      <style>{`@keyframes outagePulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }`}</style>
       {/* Wordmark plus a one-line statement of what the tool measures. Without
           it "BLACKOUT" alone gives a first-time viewer nothing to anchor the
           globe and the panels to. */}
@@ -383,15 +358,6 @@ export default function CommandBar({ countries, selectedCode, onSelectCountry, c
             />
           </>
         )}
-
-        {/* Reversed  lockup closes the bar. Same Divider as the wordmark
-            side, so the header reads as one rule of instrument groups rather
-            than a logo bolted on. WHITE rather than pure #fff: the mark sits
-            at the same tone as the rest of the chrome text. */}
-        <Divider />
-        <HeaderLink>
-          <Logo height={26} color={WHITE} markOnly={compactHeader} />
-        </HeaderLink>
       </div>
     </header>
   )

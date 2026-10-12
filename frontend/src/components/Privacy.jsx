@@ -1,18 +1,17 @@
 import { useEffect } from 'react'
 import { PROSE_CSS } from './MethodologyDoc'
-import { ISSUES_URL, REPO_URL } from '../lib/links'
 import { globePath, linkProps } from '../lib/router'
 import { BASE, BORDER, CYAN, HIGHLIGHT, MONO, MUTED, RAISED, SANS, SIDEBAR, TYPE, WHITE } from '../theme'
 
+const REPO_URL = 'https://github.com/moumenalaoui/globe'
 const LAST_UPDATED = '26 September 2026'
 
 // Same overlay layer as the methodology documents (see Methodology.jsx): the
 // page covers the globe rather than replacing it, so returning is instant.
 const OVERLAY_Z = 60
 
-// The tool's own privacy notice. It deliberately doesn't defer to 's
-// organisation-wide policy: BLACKOUT makes a narrower promise — no tracking of
-// any kind — and every statement below is checkable against the code:
+// The tool's own privacy notice. BLACKOUT makes a narrow promise — no tracking
+// of any kind — and every statement below is checkable against the code:
 //   - no cookies, localStorage/sessionStorage, analytics or tracking scripts
 //     anywhere in the frontend;
 //   - no third-party requests on load (fonts are self-hosted, see main.jsx);
@@ -123,9 +122,9 @@ export default function Privacy() {
 
             <h3>Links to other sites</h3>
             <p>
-              The source names in the status bar, the tracking link on a satellite card, the GitHub link and the
-               logo open other websites in a new tab. Those sites have their own privacy practices. BLACKOUT
-              shares nothing with them; they only see your visit if you click through.
+              The source names in the status bar, the tracking link on a satellite card and the GitHub link open
+              other websites in a new tab. Those sites have their own privacy practices. BLACKOUT shares nothing
+              with them; they only see your visit if you click through.
             </p>
 
             <h3>Where the data comes from</h3>
@@ -154,7 +153,7 @@ export default function Privacy() {
             <h3>Questions</h3>
             <p>
               Questions about this page or the tool can be raised by{' '}
-              <a href={ISSUES_URL} target="_blank" rel="noreferrer noopener">opening an issue on GitHub</a>.
+              <a href={`${REPO_URL}/issues`} target="_blank" rel="noreferrer noopener">opening an issue on GitHub</a>.
             </p>
           </div>
         </article>
