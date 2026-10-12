@@ -22,6 +22,7 @@ import {
   getOutages,
   getSatellites,
   getSatelliteOrbit,
+  apiUrl,
 } from './lib/api'
 import { BASE, BORDER, CRIMSON, MONO, MUTED, SIDEBAR, TYPE } from './theme'
 import './App.css'
@@ -159,7 +160,7 @@ export default function App() {
     // /health is deliberately outside the auth layer and returns 503 when the
     // data is stale — the body is what we want either way, so status is not
     // checked here beyond parsing.
-    fetch('/health')
+    fetch(apiUrl('/health'))
       .then((r) => r.json())
       .then((body) => {
         if (!cancelled) setDataAge(body)

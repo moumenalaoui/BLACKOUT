@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AMBER, CRIMSON, DIM, LOCAL, MONO, MUTED, TYPE, WHITE } from '../theme'
+import { apiUrl } from '../lib/api'
 
 // Which sources this component renders, and how to label them.
 const SOURCES = [
@@ -35,7 +36,7 @@ export default function GlobalIndices({ countryCode }) {
     setRows(null)
     setError(false)
 
-    fetch(`/api/country-scores?country=${countryCode}`)
+    fetch(apiUrl(`/api/country-scores?country=${countryCode}`))
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         if (!cancelled) setRows(data)

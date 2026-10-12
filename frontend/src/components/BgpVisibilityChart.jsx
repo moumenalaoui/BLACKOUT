@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { BORDER, CRIMSON, CYAN, MONO, MUTED, TYPE } from '../theme'
+import { apiUrl } from '../lib/api'
 import { CURSOR_ONLY, ChartTitle, Readout, useChartHover } from './chartHover'
 
 const MAX_TICKS = 6
@@ -65,7 +66,7 @@ export default function BgpVisibilityChart({ countryCode }) {
     setRows(null)
     setError(false)
 
-    fetch(`/api/bgp-visibility?country=${countryCode}`)
+    fetch(apiUrl(`/api/bgp-visibility?country=${countryCode}`))
       .then((r) => {
         if (!r.ok) throw new Error('Failed to fetch BGP visibility')
         return r.json()

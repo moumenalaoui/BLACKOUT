@@ -12,22 +12,23 @@ rusqlite = { version = "0.31", features = ["bundled"] }
 # `compression-gzip` only, deliberately not brotli: br compresses better but
 # its cost on a 2.3 MB body is far less predictable, and this server has 2
 # vCPUs shared with the SGP4 propagation that produces that body. gzip is
-# universally supported and measured 3.5x here.
-tower-http = { version = "0.5", features = ["fs", "compression-gzip"] }
+# universally supported and measured 3.5x here. `cors` is only switched on at
+# runtime, by CORS_ALLOWED_ORIGINS (see main.rs).
+tower-http = { version = "0.5", features = ["fs", "compression-gzip", "cors"] }
 anyhow = "1"
 reqwest = { version = "0.12", features = ["json"] }
 csv = "1"
 dotenvy = "0.15"
 # Gzip for the App Storage snapshot (see src/snapshot). Default features mean
 # the pure-Rust miniz_oxide backend, so this adds no system library to link
-# and nothing to install in replit.nix. A vacuumed database compresses to
+# and nothing to install in the build image. A vacuumed database compresses to
 # roughly a quarter of its size, which is the difference between a few hundred
 # MB and tens of GB of App Storage bandwidth per month.
 flate2 = "1"
 # Markdown -> HTML for the methodology docs (src/api/methodology.rs). Pure
 # Rust, and kept that way by `default-features = false`: the default set drags
 # in `cli` (clap) and `syntect-onig`, and the latter links the C Oniguruma
-# regex library — a system dependency replit.nix would then have to provide,
+# regex library — a system dependency the build image would then have to provide,
 # for syntax highlighting on documents that contain no code.
 comrak = { version = "0.55", default-features = false }
 sgp4 = "2.4"

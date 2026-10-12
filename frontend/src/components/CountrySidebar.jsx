@@ -22,6 +22,7 @@ import {
 import { FREEDOM_KEY, NETWORK_KEY, TOR_CHART_KEY } from '../lib/sectionKeys'
 import CollapsibleSection from './CollapsibleSection'
 import { BORDER, BORDER_STRONG, MONO, MUTED, SANS, SIDEBAR, TYPE, WHITE } from '../theme'
+import { apiUrl } from '../lib/api'
 
 const ALL_TECHNOLOGIES = Object.values(BLOCKING_REGISTRY).flat()
 
@@ -223,7 +224,7 @@ export default function CountrySidebar({ country, layer, ixpStats, onClose, fill
     setBlockingRows([])
     setBlockingLoading(true)
 
-    fetch(`/api/blocking?country=${country.country_code}`)
+    fetch(apiUrl(`/api/blocking?country=${country.country_code}`))
       .then((response) => (response.ok ? response.json() : []))
       .then((rows) => {
         if (!cancelled) setBlockingRows(rows)
@@ -248,7 +249,7 @@ export default function CountrySidebar({ country, layer, ixpStats, onClose, fill
     const promoted = ALL_TECHNOLOGIES.filter((tech) => hasTimeline(country.country_code, tech))
     Promise.all(
       promoted.map((tech) =>
-        fetch(`/api/timeline?country=${country.country_code}&technology=${tech}`)
+        fetch(apiUrl(`/api/timeline?country=${country.country_code}&technology=${tech}`))
           .then((response) => (response.ok ? response.json() : []))
           .then((rows) => [tech, rows])
           .catch(() => [tech, []]),

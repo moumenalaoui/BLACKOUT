@@ -56,6 +56,16 @@ pub async fn health(State(state): State<AppState>) -> impl IntoResponse {
     (code, Json(body))
 }
 
+/// Liveness only: 200 whenever the process is serving HTTP, whatever the state
+/// of the data. This is what a container healthcheck should poll — `health`
+/// above answers 503 on a fresh database until the first fetch lands, and
+/// whenever upstreams have been down for days, neither of which a restart
+/// would fix. Deliberately does not touch SQLite, so a long write holding the
+/// connection cannot make a working process look dead.
+pub async fn live() -> &'static str {
+    "ok"
+}
+
 /// Freshest `last_updated` across the tables that carry one. A DB error here
 /// reads as "no data", which fails the check — the right direction to fail.
 fn newest_data(state: &AppState) -> Option<String> {

@@ -10,6 +10,7 @@ import {
   ZAxis,
 } from 'recharts'
 import { BORDER, MONO, MUTED, TYPE } from '../theme'
+import { apiUrl } from '../lib/api'
 import { ChartTitle, Readout } from './chartHover'
 import { SEVERITY_COLOR, severityLabel } from './OutageFeed'
 
@@ -58,7 +59,7 @@ export default function OutageTimeline({ countryCode }) {
     setRows(null)
     setError(false)
 
-    fetch(`/api/outages?country=${countryCode}`)
+    fetch(apiUrl(`/api/outages?country=${countryCode}`))
       .then((r) => {
         if (!r.ok) throw new Error('Failed to fetch outages')
         return r.json()

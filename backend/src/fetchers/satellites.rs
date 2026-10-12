@@ -761,8 +761,8 @@ pub async fn run_catalog_refresh_loop(catalog: SatelliteCatalog, state: crate::A
     let age = catalog_age(&state);
     match (restored, age) {
         (0, _) => println!(
-            "satellites: no persistent catalog found — this is either a first deployment or \
-             the App Storage snapshot did not restore (see README: Deployment (Replit))"
+            "satellites: no persistent catalog found — this is either a first start or the \
+             database is not on persistent storage (see README: Persistence)"
         ),
         (n, Some(age)) => println!(
             "satellites: loaded {n} satellites from the persistent catalog; catalog age {}",

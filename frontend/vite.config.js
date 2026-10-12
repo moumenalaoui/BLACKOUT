@@ -2,6 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import cesium from 'vite-plugin-cesium'
 
+// Dev-server only: where `npm run dev` forwards API calls. Defaults to the
+// backend's own default listen address; override with DEV_API_PROXY_TARGET
+// when the backend runs elsewhere (another port, a container, a VM).
+const apiTarget = process.env.DEV_API_PROXY_TARGET || 'http://localhost:3001'
+
 export default defineConfig({
   // vite-plugin-cesium copies Cesium's static assets (workers, Assets/,
   // Widgets/) into the bundle and sets CESIUM_BASE_URL. Cesium can't run from
@@ -15,7 +20,7 @@ export default defineConfig({
       // server has to forward that to the backend rather than answering it
       // itself — otherwise every request 404s against Vite.
       '/api': {
-        target: 'http://localhost:3001',
+        target: apiTarget,
         changeOrigin: true,
       },
       // `/health` is not under `/api` — it is deliberately kept at the root so
@@ -24,7 +29,7 @@ export default defineConfig({
       // this entry Vite answers with index.html, the JSON parse throws, and
       // the status bar's DATA AGE silently reads "—" in dev only.
       '/health': {
-        target: 'http://localhost:3001',
+        target: apiTarget,
         changeOrigin: true,
       },
     },

@@ -1,4 +1,15 @@
-const BASE = '/api'
+// Where the backend lives. Empty — the default — means same-origin: the
+// backend serves this bundle, so `/api/...` resolves against wherever the page
+// was loaded from, behind any reverse proxy or domain without configuration.
+// Set VITE_API_BASE_URL at build time only when the frontend is hosted apart
+// from the backend, and then list this site's origin in the backend's
+// CORS_ALLOWED_ORIGINS.
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '')
+
+// URL for a backend path such as `/health` or `/api/geo`.
+export const apiUrl = (path) => `${API_ORIGIN}${path}`
+
+const BASE = apiUrl('/api')
 
 export async function getCountries() {
   const r = await fetch(`${BASE}/countries`)

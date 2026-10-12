@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { BORDER, CYAN, DIM, MONO, MUTED, TYPE, US_EXPOSURE, WHITE } from '../theme'
+import { apiUrl } from '../lib/api'
 import { CURSOR_ONLY, ChartTitle, Readout, useChartHover } from './chartHover'
 
 // Same thinning approach as TorChart.jsx: one tick per month, capped so
@@ -64,7 +65,7 @@ export default function Http3ShareChart({ countryCode }) {
     setRows(null)
     setError(false)
 
-    fetch(`/api/http-protocol-share?country=${countryCode}`)
+    fetch(apiUrl(`/api/http-protocol-share?country=${countryCode}`))
       .then((r) => {
         if (!r.ok) throw new Error('Failed to fetch HTTP protocol share')
         return r.json()

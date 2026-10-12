@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AMBER, CRIMSON, DIM, LOCAL, MONO, MUTED, TYPE, WHITE } from '../theme'
+import { apiUrl } from '../lib/api'
 
 // Internet Society Pulse's Internet Resilience Index. This is an
 // infrastructure measure — whether a country's network holds up — not a
@@ -34,7 +35,7 @@ export default function ResilienceIndex({ countryCode }) {
     let cancelled = false
     setState(LOADING)
 
-    fetch(`/api/country-scores?country=${countryCode}`)
+    fetch(apiUrl(`/api/country-scores?country=${countryCode}`))
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         if (cancelled) return

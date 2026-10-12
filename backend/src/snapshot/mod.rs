@@ -1,5 +1,9 @@
 //! Durable SQLite on a platform with no persistent disk.
 //!
+//! **Optional and Replit-only.** Nothing here runs unless `SNAPSHOT_KEY` is
+//! set. A self-hosted deployment (see the Dockerfile and docker-compose.yml)
+//! keeps `DATABASE_PATH` on a persistent volume and leaves this layer off.
+//!
 //! Replit rebuilds a published app's filesystem from the workspace file tree
 //! on every publish, so `DATABASE_PATH` is gone after each deploy. That would
 //! be survivable if the database were purely a cache, and it is not: three

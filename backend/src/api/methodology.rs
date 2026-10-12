@@ -6,8 +6,8 @@
 //!
 //! So they are **compiled into the binary** with `include_str!` rather than read
 //! from disk. Reading them at runtime would mean a third path env var next to
-//! `STATIC_DIR` and `SEED_DIR`, and the `.replit` comments record what a wrong
-//! one costs — `SEED_DIR` is described there as a crash loop. Embedding has no
+//! `STATIC_DIR` and `SEED_DIR`, and a wrong one of those is costly — a bad
+//! `SEED_DIR` is a crash loop, not a degraded start. Embedding has no
 //! runtime failure mode at all: if a document is missing or renamed, the build
 //! fails at the `include_str!` with the path in the error, which is the cheapest
 //! possible place to find out. The cost is that editing prose needs a rebuild,

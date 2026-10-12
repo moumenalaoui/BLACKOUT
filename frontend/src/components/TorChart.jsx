@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { BORDER, CRIMSON, MONO, MUTED, TYPE, US_EXPOSURE, WHITE } from '../theme'
+import { apiUrl } from '../lib/api'
 import { CURSOR_ONLY, Readout, useChartHover } from './chartHover'
 
 // Most labels this axis will ever draw.
@@ -186,7 +187,7 @@ export default function TorChart({ countryCode }) {
     setRows(null)
     setError(false)
 
-    fetch(`/api/tor-metrics?country=${countryCode}`)
+    fetch(apiUrl(`/api/tor-metrics?country=${countryCode}`))
       .then((r) => {
         if (!r.ok) throw new Error('Failed to fetch tor metrics')
         return r.json()
