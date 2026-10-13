@@ -13,5 +13,23 @@
 	#
 	# No `log` either, deliberately: the privacy page promises that requests
 	# are not logged, and Caddy writes no access log unless told to.
+
+	# Cache API responses at the Cloudflare edge for 5 minutes, browsers for 1.
+	# Satellites are excluded here and get a shorter window below.
+	@api {
+		path /api/*
+		not path /api/satellites*
+	}
+	header @api {
+		Cache-Control "public, max-age=60, s-maxage=300"
+		defer
+	}
+
+	# Satellite position and status data changes fast: 30s edge, 10s browser.
+	header /api/satellites* {
+		Cache-Control "public, max-age=10, s-maxage=30"
+		defer
+	}
+
 	reverse_proxy app:3001
 }
